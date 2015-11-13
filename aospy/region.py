@@ -1,6 +1,6 @@
 """region.py: Region class and region_inst()."""
 from . import LAT_STR, LON_STR
-
+import warnings
 import xray
 
 
@@ -46,11 +46,12 @@ class Region(object):
     def _get_land_mask(data, do_land_mask):
         try:
             land_mask = data.land_mask
-        except:
+        except AttributeError:
             # S. Hill 2015-10-14: Eventually aospy will have a built-in land
             # mask array that it can use in case the object doesn't have one
             # of its own.  For now the object /must/ have one.
-            raise
+            warnings.warn("Land mask not found.  No land mask will be applied.")
+            return 1
         if do_land_mask in (True, 'land'):
             return land_mask
         if do_land_mask == 'ocean':
