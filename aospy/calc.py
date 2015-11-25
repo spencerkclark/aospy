@@ -18,8 +18,7 @@ from .io import (_data_in_label, _data_out_label, _ens_label, _yr_label, dmget,
 from .timedate import TimeManager, _get_time
 from .utils import (get_parent_attr, apply_time_offset, monthly_mean_ts,
                     monthly_mean_at_each_ind, pfull_from_ps,
-                    to_pfull_from_phalf, dp_from_ps, dp_from_p, int_dp_g,
-                    to_pascal)
+                    to_pfull_from_phalf, dp_from_ps, dp_from_p, int_dp_g)
 
 
 dp = Var(
@@ -383,7 +382,6 @@ class Calc(object):
                     ds = ds.set_coords(name_int)
             if self.dtype_in_vert == 'pressure' and 'level' in ds.coords:
                 self.pressure = ds.level
-                ds.level = to_pascal(ds.level)
         # print(ds)
         return ds
 
