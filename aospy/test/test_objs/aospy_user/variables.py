@@ -13,8 +13,6 @@ p = Var(
     def_lon=True,
     in_nc_grid=False
 )
-
-
 ps = Var(
     name='ps',
     units=units.Pa,
@@ -26,8 +24,6 @@ ps = Var(
     def_lon=True,
     in_nc_grid=False
 )
-
-
 bk = Var(
     name='bk',
     units=units.Pa,
@@ -39,8 +35,6 @@ bk = Var(
     def_lon=False,
     in_nc_grid=True
 )
-
-
 pk = Var(
     name='pk',
     units=units.Pa,
@@ -52,8 +46,6 @@ pk = Var(
     def_lon=False,
     in_nc_grid=True
 )
-
-
 temp = Var(
     name='temp',
     alt_names=('ta',),
@@ -67,7 +59,6 @@ temp = Var(
     in_nc_grid=False,
     colormap='RdBu_r'
 )
-
 dp = Var(
     name='dp',
     domain='atmos',
@@ -85,8 +76,6 @@ dp = Var(
     func=calcs.dp,
     units=units.Pa,
 )
-
-
 olr = Var(
     name='olr',
     alt_names=('rlut',),
@@ -99,7 +88,6 @@ olr = Var(
     def_lon=True,
     in_nc_grid=False
 )
-
 vcomp = Var(
     name='vcomp',
     alt_names=('va',),
@@ -112,12 +100,21 @@ vcomp = Var(
     def_lon=True,
     in_nc_grid=False
 )
-
-
+msf = Var(
+    name='msf',
+    domain='atmos',
+    description=('Eulerian meridional mass streamfunction'),
+    variables=(vcomp, dp),
+    def_time=True,
+    def_vert=True,
+    def_lat=True,
+    def_lon=False,
+    func=calcs.msf,
+    units=units.kg_s1
+)
 master_vars_list = [
-    temp, olr, vcomp
+    temp, olr, vcomp, msf
 ]
-
 class variables(object):
     def __init__(self, vars_list):
         for var in vars_list:
