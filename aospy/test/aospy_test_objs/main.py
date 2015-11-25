@@ -8,10 +8,9 @@ import aospy_user.regions
 import aospy_user.units
 import aospy_user.calcs
 import aospy_user.variables
-from aospy_user.runs.am2 import *
-from aospy_user.runs.idealized import *
-from aospy_user.models.models import *
-from aospy_user.projs.test_proj import *
+from aospy_user.runs import *
+from aospy_user.models import *
+from aospy_user.projs import *
 import aospy_user.obj_from_name as aospy_user
 
 
@@ -188,7 +187,7 @@ def main(main_params):
 if __name__ == '__main__':
 
     mp = MainParams()
-    mp.proj = 'TESTS'
+    mp.proj = 'tests'
     mp.model = ['dargan']
     mp.run = ['control_T85']
     mp.ens_mem = [False]
@@ -202,7 +201,7 @@ if __name__ == '__main__':
     mp.dtype_in_time = ['ts']
     mp.dtype_in_vert = [False]
     mp.dtype_in_vert = ['sigma']
-    mp.dtype_out_time = [('av', 'reg.av', 'reg.ts')]
+    mp.dtype_out_time = [('av')]
 #    mp.dtype_out_vert = ['vert_int']
     mp.dtype_out_vert = [False]
     mp.level = [False]
