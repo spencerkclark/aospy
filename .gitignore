@@ -1,7 +1,3 @@
-# For now.
-aospy/calc.py
-aospy/region.py
-
 *.pdf
 *.eps
 *.log
