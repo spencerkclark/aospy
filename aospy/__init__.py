@@ -1,6 +1,7 @@
 """aospy: management, and analysis of gridded climate data."""
 from .__config__ import (user_path, LAT_STR, LON_STR, PFULL_STR, PHALF_STR,
-                         PLEVEL_STR, TIME_STR, TIME_STR_IDEALIZED, YEAR_STR)
+                         PLEVEL_STR, TIME_STR, TIME_STR_IDEALIZED, YEAR_STR,
+                         AVERAGE_T1_STR, AVERAGE_T2_STR)
 from . import constants
 from .constants import Constant
 from . import utils
