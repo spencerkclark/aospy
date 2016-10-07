@@ -24,6 +24,13 @@ LAND_MASK_STR = 'land_mask'
 PK_STR = 'pk'
 BK_STR = 'bk'
 AVERAGE_DT_STR = 'average_DT'
+NV_STR = 'nv'
+AVG_START_DATE_STR = 'avg_start_date'
+AVG_END_DATE_STR = 'avg_end_date'
+
+# AVERAGE_DT_STR does not enter here, because it is not a 'time since'
+# quantity.
+TIME_VAR_STRS = [TIME_STR, TIME_BOUNDS_STR]
 
 GRID_ATTRS = OrderedDict(
     [(LAT_STR, ('lat', 'latitude', 'LATITUDE', 'y', 'yto')),
@@ -40,8 +47,10 @@ GRID_ATTRS = OrderedDict(
      (PLEVEL_STR, ('level', 'lev', 'plev')),
      (TIME_STR, ('time',)),
      (AVERAGE_DT_STR, ('average_DT',)),
-     (AVERAGE_T1_STR, ('average_T1',)),
-     (AVERAGE_T2_STR, ('average_T2',))]
+     (TIME_BOUNDS_STR, ('time_bounds',)),
+     (NV_STR, ('nv',)),
+     (AVG_START_DATE_STR, ('avg_start_date',)),
+     (AVG_END_DATE_STR, ('avg_end_date',))]
 )
 
 del os
