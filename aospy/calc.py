@@ -451,10 +451,7 @@ class Calc(object):
         # filesystem at the NOAA GFDL computing cluster, should be factored out
         # of this function.  A config setting or some other user input should
         # specify what method to call to access the files on the filesystem.
-        try:
-            dmget(paths)
-        except OSError:
-            pass
+        dmget(paths)
         ds_chunks = []
         vars_to_drop = ['time_bounds', 'nv', 'bnds',
                         'average_T1', 'average_T2']
@@ -837,10 +834,7 @@ class Calc(object):
         # tarfile 'append' mode won't overwrite the old file, which we want.
         # So open in 'read' mode, extract the file, and then delete it.
         # But 'read' mode throws OSError if file doesn't exist: make it first.
-        try:
-            dmget([self.path_archive])
-        except OSError:
-            pass
+        dmget([self.path_archive])
         with tarfile.open(self.path_archive, 'a') as tar:
             pass
         with tarfile.open(self.path_archive, 'r') as tar:
@@ -904,10 +898,7 @@ class Calc(object):
     def _load_from_archive(self, dtype_out_time, dtype_out_vert=False):
         """Load data save in tarball on archive file system."""
         path = os.path.join(self.dir_archive, 'data.tar')
-        try:
-            dmget([path])
-        except OSError:
-            pass
+        dmget([path])
         with tarfile.open(path, 'r') as data_tar:
             ds = xr.open_dataset(
                 data_tar.extractfile(self.file_name[dtype_out_time]),
