@@ -180,9 +180,12 @@ class Calc(object):
     def _dir_scratch(self):
         """Create string of the data directory on the scratch filesystem."""
         ens_label = _ens_label(self.ens_mem)
-        return os.path.join('/work', os.getenv('USER'), self.proj_str,
-                            self.model_str, self.run_str, ens_label,
-                            self.name)
+        dir_names = [self.proj_str, self.model_str, self.run_str, ens_label,
+                     self.name]
+        if self.proj.direc_out:
+            return os.path.join(self.proj.direc_out, *dir_names)
+        else:
+            return os.path.join('/work', os.getenv('USER'), *dir_names)
 
     def _dir_archive(self):
         """Create string of the data directory on the archive filesystem."""
