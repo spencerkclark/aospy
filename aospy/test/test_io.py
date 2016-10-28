@@ -14,7 +14,7 @@ class AospyIOTestCase(unittest.TestCase):
         pass
 
 
-class TestUtils(AospyIOTestCase):
+class TestIO(AospyIOTestCase):
     def test_dmget(self):
         # For now this just test to make sure that dmget
         # doesn't raise an exception if the command does not exist
