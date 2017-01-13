@@ -69,8 +69,8 @@ class CalcInterface(object):
     def __init__(self, proj=None, model=None, run=None, ens_mem=None, var=None,
                  date_range=None, region=None, intvl_in=None, intvl_out=None,
                  dtype_in_time=None, dtype_in_vert=None, dtype_out_time=None,
-                 dtype_out_vert=None, level=None, chunk_len=False,
-                 verbose=True):
+                 dtype_out_vert=None, level=None, time_offset=None,
+                 chunk_len=False, verbose=True):
         """Create the CalcInterface object with the given parameters."""
         # 2015-10-13 S. Hill: This tuple-izing is for support of calculations
         # where variables come from different runs.  However, this is a very
@@ -154,6 +154,7 @@ class CalcInterface(object):
                                 (self.end_date - self.start_date))
 
         # First test of this
+        self.time_offset = time_offset
         self.DataLoader = self.run[0].DataLoader
         self.data_loader_attrs = dict(
             domain=self.domain, intvl_in=self.intvl_in,
@@ -378,6 +379,10 @@ class Calc(object):
     #     paths.sort()
     #     return paths
 
+    # 2017-01-13 [SKC]:
+    # The absolute time bounds of our selection are now handled in DataLoader.
+    # We still need a function to select times within that subset, however.
+    # Leaving this as is for now.
     def _to_desired_dates(self, arr):
         """Restrict the xarray DataArray or Dataset to the desired months."""
         times = utils.times.extract_date_range_and_months(
@@ -421,76 +426,6 @@ class Calc(object):
                 self.pressure = ds.level
         return ds
 
-    # @staticmethod
-    # def dt_from_time_bnds(ds):
-    #     """Compute the timestep durations from the time bounds array."""
-    #     for name in ['time_bounds', 'time_bnds']:
-    #         try:
-    #             bounds = ds[name]
-    #         except KeyError:
-    #             pass
-    #         else:
-    #             dt = bounds.diff(BOUNDS_STR).squeeze().drop(BOUNDS_STR)
-    #             # Convert from float # of days to np.timedelta64 in seconds.
-    #             # TODO: Explicitly check that units are days.
-    #             dt.values = np.array([np.timedelta64(int(d), 'D')
-    #                                   for d in dt.values])
-    #             return dt / np.timedelta64(1, 's')
-    #     raise ValueError("Time bound data cannot be found in the dataset.\n"
-    #                      "{0}".format(ds))
-
-    # def _get_dt(self, ds):
-    #     """Find or create the array of timestep durations."""
-    #     for name in ['average_DT']:
-    #         try:
-    #             dt = ds[name]
-    #         except KeyError:
-    #             logging.debug("dt array not found for nonexistent key name "
-    #                           "`{0}`".format(name))
-    #         else:
-    #             # Convert to seconds
-    #             return self._to_desired_dates(dt) / np.timedelta64(1, 's')
-    #     return self._to_desired_dates(self.dt_from_time_bnds(ds))
-
-    # def _create_input_data_obj(self, var, start_date=False,
-    #                            end_date=False, n=0, set_dt=False,
-    #                            set_pfull=False):
-    #     """Create xarray.DataArray for the Var from files on disk.
-
-    #     """
-    #     paths = self._get_input_data_paths(var, start_date, end_date, n)
-    #     # TODO: refactor `dmget` to more general pre-processing step that
-    #     #       user can specify in main or via a config.
-    #     utils.io.dmget(paths)
-    #     ds = xr.open_mfdataset(paths, decode_cf=False)
-    #     # Workaround for years < 1678 causing overflows.
-    #     if start_date < pd.Timestamp.min:
-    #         ds = utils.times.numpy_datetime_workaround_encode_cf(ds)
-    #     ds = xr.decode_cf(ds, decode_times=True)
-    #     ds = self._add_grid_attributes(ds, n)
-    #     for name in var.names:
-    #         try:
-    #             arr = ds[name]
-    #         except KeyError:
-    #             pass
-    #         else:
-    #             break
-    #     else:
-    #         raise KeyError('Variable not found: {}'.format(var))
-    #     # At least one variable has to get us the dt array also.
-    #     if set_dt:
-    #         try:
-    #             self.dt = self._get_dt(ds)
-    #         except ValueError:
-    #             pass
-    #     # At least one variable has to get us the pfull array, if it's needed.
-    #     if set_pfull:
-    #         try:
-    #             self.pfull_coord = ds[PFULL_STR]
-    #         except KeyError:
-    #             pass
-    #     return arr.load()
-
     def _get_pressure_from_p_coords(self, ps, name='p', n=0):
         """Get pressure or pressure thickness array for data on p-coords."""
         if np.any(self.pressure):
@@ -524,7 +459,8 @@ class Calc(object):
             # self._ps_data = self._create_input_data_obj(self.ps, start_date,
             #                                            end_date)
             self._ps_data = self.DataLoader.load_variable(
-                self.ps, start_date, end_date, **self.data_loader_attrs)
+                self.ps, start_date, end_date, self.time_offset,
+                **self.data_loader_attrs)
             name = self._ps_data.name
             self._ps_data = self._add_grid_attributes(
                 self._ps_data.to_dataset(name), 0)
@@ -538,15 +474,15 @@ class Calc(object):
         raise ValueError("`dtype_in_vert` must be either 'pressure' or "
                          "'sigma' for pressure data")
 
-    def _correct_gfdl_inst_time(self, arr):
-        """Correct off-by-one error in GFDL instantaneous model data."""
-        if self.intvl_in.endswith('hr'):
-            offset = -1*int(self.intvl_in[0])
-        else:
-            offset = 0
-        time = utils.times.apply_time_offset(arr[TIME_STR], hours=offset)
-        arr[TIME_STR] = time
-        return arr
+    # def _correct_gfdl_inst_time(self, arr):
+    #     """Correct off-by-one error in GFDL instantaneous model data."""
+    #     if self.intvl_in.endswith('hr'):
+    #         offset = -1*int(self.intvl_in[0])
+    #     else:
+    #         offset = 0
+    #     time = utils.times.apply_time_offset(arr[TIME_STR], hours=offset)
+    #     arr[TIME_STR] = time
+    #     return arr
 
     def _get_input_data(self, var, start_date, end_date, n):
         """Get the data for a single variable over the desired date range."""
@@ -565,8 +501,8 @@ class Calc(object):
         elif var.name in ('p', 'dp'):
             data = self._get_pressure_vals(var, start_date, end_date)
             if self.dtype_in_vert == ETA_STR:
-                if self.dtype_in_time == 'inst':
-                    data = self._correct_gfdl_inst_time(data)
+                # if self.dtype_in_time == 'inst':
+                #     data = self._correct_gfdl_inst_time(data)
                 return self._to_desired_dates(data)
             return data
         # Get grid, time, etc. arrays directly from model object
@@ -578,6 +514,7 @@ class Calc(object):
             cond_pfull = ((not hasattr(self, 'pfull')) and var.def_vert and
                           self.dtype_in_vert == ETA_STR)
             data = self.DataLoader.load_variable(var, start_date, end_date,
+                                                 self.time_offset,
                                                  **self.data_loader_attrs)
             # 2017-01-13 [SKC]: Load variable returns a DataArray (for now)
             # therefore to add grid attributes from the Model object and to
@@ -610,8 +547,8 @@ class Calc(object):
                                                            self.pfull_coord)
         # Correct GFDL instantaneous data time indexing problem.
         if var.def_time:
-            if self.dtype_in_time == 'inst':
-                data = self._correct_gfdl_inst_time(data)
+            # if self.dtype_in_time == 'inst':
+            #    data = self._correct_gfdl_inst_time(data)
             # Restrict to the desired dates within each year.
             if self.dtype_in_time != 'av':
                 return self._to_desired_dates(data)

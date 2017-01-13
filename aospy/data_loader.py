@@ -15,7 +15,7 @@ _TIME_SHIFT_ATTRS = ['shift_{}'.format(intvl) for intvl in
 class DataLoader(object):
     """A fundamental DataLoader object"""
     def load_variable(self, var=None, start_date=None, end_date=None,
-                      **DataAttrs):
+                      time_offset=None, **DataAttrs):
         """Return a DataArray with requested variable, given time range,
         and input interval.
 
@@ -30,6 +30,9 @@ class DataLoader(object):
             start date for interval
         end_date : netCDF4.netcdftime or np.datetime64
             end date for interval
+        time_offset : dict
+            Option to add a time offset to the time coordinate to correct for
+            incorrect metadata.
         **DataAttrs
             Attributes needed to identify a unique set of files to load from
 
@@ -47,20 +50,27 @@ class DataLoader(object):
 
         # Apply correction before selecting time range.
         # Note that time shifts are a property of a particular list of files
-        # NOT an entire DataLoader, so there needs to be a way to specify
-        # those on a file list by file list basis.
-
-        # TODO
-        # da = self._maybe_apply_time_shift(self, da, **DataAttrs)
+        # NOT an entire DataLoader, so there either needs to be a way to
+        # specify those on a file list by file list basis. By default
+        # I think it is best to make the user be explicit about it in Calc.
+        # If one wants more automation, one can
+        # override _maybe_apply_time_shift
+        # in a new DataLoader and automate the offset based on
+        # DataAttrs like 'inst' for example
+        da = self._maybe_apply_time_shift(da, time_offset, **DataAttrs)
         start_date_xarray = times.numpy_datetime_range_workaround(start_date)
         end_date_xarray = start_date_xarray + (end_date - start_date)
         return times.sel_time(da, np.datetime64(start_date_xarray),
                               np.datetime64(end_date_xarray)).load()
 
-    def _maybe_apply_time_shift(self, da, **DataAttrs):
-        """Apply specified time shift"""
-        # TODO
-        pass
+    @staticmethod
+    def _maybe_apply_time_shift(da, time_offset, **DataAttrs):
+        """Apply specified time shift to DataArray"""
+        if time_offset:
+            time = times.apply_time_offset(da[internal_names].TIME_STR,
+                                           **time_offset)
+            da[internal_names.TIME_STR] = time
+        return da
 
     @classmethod
     def _load_data_from_disk(cls, file_set):
@@ -76,6 +86,7 @@ class DataLoader(object):
         -------
         Dataset
         """
+        io.dmget(file_set)
         return xr.open_mfdataset(file_set, preprocess=cls.rename_grid_attrs,
                                  concat_dim=internal_names.TIME_STR,
                                  decode_cf=False)
@@ -273,6 +284,25 @@ class GFDLDataLoader(DataLoader):
         self.data_direc = data_direc
         self.data_start_date = data_start_date
         self.data_end_date = data_end_date
+
+    @staticmethod
+    def _maybe_apply_time_shift(da, time_offset, **DataAttrs):
+        """Special logic to aid in automation of time offsetting for GFDL
+        post-processed data"""
+        if time_offset:
+            time = times.apply_time_offset(da[internal_names.TIME_STR],
+                                           **time_offset)
+            da[internal_names.TIME_STR] = time
+        else:
+            if DataAttrs['dtype_in_time'] == 'inst':
+                if DataAttrs['intvl_in'].endswith('hr'):
+                    offset = -1 * int(DataAttrs['intvl_in'])
+                else:
+                    offset = 0
+                time = times.apply_time_offset(da[internal_names.TIME_STR],
+                                               hours=offset)
+                da[internal_names.TIME_STR] = time
+        return da
 
     def _generate_file_set(self, var=None, start_date=None, end_date=None,
                            domain=None, intvl_in=None, dtype_in_vert=None,
