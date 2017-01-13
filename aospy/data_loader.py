@@ -1,6 +1,7 @@
 """aospy DataLoader objects"""
 import os
 
+import numpy as np
 import xarray as xr
 from glob import glob
 
@@ -37,8 +38,8 @@ class DataLoader(object):
         da : DataArray
              DataArray for the specified variable, date range, and interval in
         """
-        file_set = self._generate_file_set(var, start_date, end_date,
-                                           **DataAttrs)
+        file_set = self._generate_file_set(var=var, start_date=start_date,
+                                           end_date=end_date, **DataAttrs)
         ds = self._load_data_from_disk(file_set)
         ds = self._prep_time_data(ds)
         ds = self.set_grid_attrs_as_coords(ds)  # Tested
@@ -48,9 +49,13 @@ class DataLoader(object):
         # Note that time shifts are a property of a particular list of files
         # NOT an entire DataLoader, so there needs to be a way to specify
         # those on a file list by file list basis.
-        da = self._maybe_apply_time_shift(self, da, **DataAttrs)
 
-        return times.sel_time(da, start_date, end_date).load()
+        # TODO
+        # da = self._maybe_apply_time_shift(self, da, **DataAttrs)
+        start_date_xarray = times.numpy_datetime_range_workaround(start_date)
+        end_date_xarray = start_date_xarray + (end_date - start_date)
+        return times.sel_time(da, np.datetime64(start_date_xarray),
+                              np.datetime64(end_date_xarray)).load()
 
     def _maybe_apply_time_shift(self, da, **DataAttrs):
         """Apply specified time shift"""
@@ -98,7 +103,8 @@ class DataLoader(object):
         -------
         Dataset
         """
-        ds = times.enforce_valid_timestamp_date_range(ds)
+        # ds = times.enforce_valid_timestamp_date_range(ds)
+        ds = times.numpy_datetime_workaround_encode_cf(ds)
         if internal_names.TIME_BOUNDS_STR in ds:
             ds = times.set_average_dt_metadata(ds)
         ds = xr.decode_cf(

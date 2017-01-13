@@ -14,6 +14,7 @@ import xarray as xr
 from .__config__ import (LAT_STR, LON_STR, LAT_BOUNDS_STR, LON_BOUNDS_STR,
                          PHALF_STR, PFULL_STR, PLEVEL_STR, TIME_STR, YEAR_STR,
                          ETA_STR, BOUNDS_STR)
+from . import internal_names
 from .constants import Constant, grav
 from . import utils
 from .var import Var
@@ -152,6 +153,13 @@ class CalcInterface(object):
         self.end_date_xarray = (self.start_date_xarray +
                                 (self.end_date - self.start_date))
 
+        # First test of this
+        self.DataLoader = self.run[0].DataLoader
+        self.data_loader_attrs = dict(
+            domain=self.domain, intvl_in=self.intvl_in,
+            dtype_in_vert=self.dtype_in_vert,
+            dtype_in_time=self.dtype_in_time, intvl_out=self.intvl_out)
+
 
 class Calc(object):
     """Class for executing, saving, and loading a single computation."""
@@ -244,37 +252,37 @@ class Calc(object):
 
         self.data_out = {}
 
-    def _data_files_one_dir(self, name, n=0):
-        """Get the file names of the files in a single directory"""
-        if self.intvl_in in self.data_files[n]:
-            if isinstance(self.data_files[n][self.intvl_in][name], str):
-                data_files = [self.data_files[n][self.intvl_in][name]]
-            else:
-                data_files = self.data_files[n][self.intvl_in][name]
-        else:
-            if isinstance(self.data_files[n][name], str):
-                data_files = [self.data_files[n][name]]
-            else:
-                data_files = self.data_files[n][name]
-        return data_files
+    # def _data_files_one_dir(self, name, n=0):
+    #     """Get the file names of the files in a single directory"""
+    #     if self.intvl_in in self.data_files[n]:
+    #         if isinstance(self.data_files[n][self.intvl_in][name], str):
+    #             data_files = [self.data_files[n][self.intvl_in][name]]
+    #         else:
+    #             data_files = self.data_files[n][self.intvl_in][name]
+    #     else:
+    #         if isinstance(self.data_files[n][name], str):
+    #             data_files = [self.data_files[n][name]]
+    #         else:
+    #             data_files = self.data_files[n][name]
+    #     return data_files
 
-    def _get_input_data_paths_one_dir(self, name, data_direc, n=0):
-        """Get the names of netCDF files when all in same directory."""
-        data_files = self._data_files_one_dir(name, n)
-        # data_files may hold absolute or relative paths
-        paths = []
-        for nc in data_files:
-            full = os.path.join(data_direc, nc)
-            if os.path.isfile(nc):
-                paths.append(nc)
-            elif os.path.isfile(full):
-                paths.append(full)
-            else:
-                logging.info("Specified netCDF file `{}` not found".format(nc))
-        # Remove duplicate entries.
-        files = list(set(paths))
-        files.sort()
-        return files
+    # def _get_input_data_paths_one_dir(self, name, data_direc, n=0):
+    #     """Get the names of netCDF files when all in same directory."""
+    #     data_files = self._data_files_one_dir(name, n)
+    #     # data_files may hold absolute or relative paths
+    #     paths = []
+    #     for nc in data_files:
+    #         full = os.path.join(data_direc, nc)
+    #         if os.path.isfile(nc):
+    #             paths.append(nc)
+    #         elif os.path.isfile(full):
+    #             paths.append(full)
+    #         else:
+    #             logging.info("Specified netCDF file `{}` not found".format(nc))
+    #     # Remove duplicate entries.
+    #     files = list(set(paths))
+    #     files.sort()
+    #     return files
 
     def _get_input_data_paths_gfdl_repo(self, name, n=0):
         """Get the names of netCDF files from a GFDL repo on /archive."""
@@ -282,93 +290,93 @@ class Calc(object):
             run_name=self.run[n].name, var_name=name
         )
 
-    def _get_input_data_paths_gfdl_dir_struct(self, name, data_direc,
-                                              start_year, end_year, n=0):
-        """Get paths to netCDF files save in GFDL standard output format."""
-        domain = self.domain
-        dtype_lbl = self.dtype_in_time
-        if self.intvl_in == 'daily':
-            domain += '_daily'
-        if self.dtype_in_vert == ETA_STR and name != 'ps':
-            domain += '_level'
-        if self.dtype_in_time == 'inst':
-            domain += '_inst'
-            dtype_lbl = 'ts'
-        if 'monthly_from_' in self.dtype_in_time:
-            dtype = self.dtype_in_time.replace('monthly_from_', '')
-            dtype_lbl = dtype
-        else:
-            dtype = self.dtype_in_time
-        dur_str = str(self.data_dur[n]) + 'yr'
-        if self.dtype_in_time == 'av':
-            subdir = self.intvl_in + '_' + dur_str
-        else:
-            subdir = os.path.join(self.intvl_in, dur_str)
-        direc = os.path.join(data_direc, domain, dtype_lbl, subdir)
-        files = [os.path.join(direc, utils.io.data_name_gfdl(
-                 name, domain, dtype, self.intvl_in, year, self.intvl_out,
-                 self.data_start_date[n].year, self.data_dur[n]
-                 )) for year in range(start_year, end_year + 1)]
-        # Remove duplicate entries.
-        files = list(set(files))
-        files.sort()
-        return files
+    # def _get_input_data_paths_gfdl_dir_struct(self, name, data_direc,
+    #                                           start_year, end_year, n=0):
+    #     """Get paths to netCDF files save in GFDL standard output format."""
+    #     domain = self.domain
+    #     dtype_lbl = self.dtype_in_time
+    #     if self.intvl_in == 'daily':
+    #         domain += '_daily'
+    #     if self.dtype_in_vert == ETA_STR and name != 'ps':
+    #         domain += '_level'
+    #     if self.dtype_in_time == 'inst':
+    #         domain += '_inst'
+    #         dtype_lbl = 'ts'
+    #     if 'monthly_from_' in self.dtype_in_time:
+    #         dtype = self.dtype_in_time.replace('monthly_from_', '')
+    #         dtype_lbl = dtype
+    #     else:
+    #         dtype = self.dtype_in_time
+    #     dur_str = str(self.data_dur[n]) + 'yr'
+    #     if self.dtype_in_time == 'av':
+    #         subdir = self.intvl_in + '_' + dur_str
+    #     else:
+    #         subdir = os.path.join(self.intvl_in, dur_str)
+    #     direc = os.path.join(data_direc, domain, dtype_lbl, subdir)
+    #     files = [os.path.join(direc, utils.io.data_name_gfdl(
+    #              name, domain, dtype, self.intvl_in, year, self.intvl_out,
+    #              self.data_start_date[n].year, self.data_dur[n]
+    #              )) for year in range(start_year, end_year + 1)]
+    #     # Remove duplicate entries.
+    #     files = list(set(files))
+    #     files.sort()
+    #     return files
 
-    def _get_data_direc(self, n):
-        if isinstance(self.data_direc, str):
-            return self.data_direc
-        if isinstance(self.data_direc, (list, tuple)):
-            return self.data_direc[n]
-        raise IOError("data_direc must be string, list, or tuple: "
-                      "{}".format(self.data_direc))
+    # def _get_data_direc(self, n):
+    #     if isinstance(self.data_direc, str):
+    #         return self.data_direc
+    #     if isinstance(self.data_direc, (list, tuple)):
+    #         return self.data_direc[n]
+    #     raise IOError("data_direc must be string, list, or tuple: "
+    #                   "{}".format(self.data_direc))
 
-    def _get_input_data_paths(self, var, start_date=False,
-                              end_date=False, n=0):
-        """Create xarray.DataArray of the variable from its netCDF files.
+    # def _get_input_data_paths(self, var, start_date=False,
+    #                           end_date=False, n=0):
+    #     """Create xarray.DataArray of the variable from its netCDF files.
 
-        Files chosen depend on the specified variables and time interval and
-        the attributes of the netCDF files.
-        """
-        data_direc = self._get_data_direc(n)
-        # Cycle through possible names until the data is found.
-        for name in var.names:
-            if self.data_dir_struc[n] == 'one_dir':
-                try:
-                    files = self._get_input_data_paths_one_dir(
-                        name, data_direc, n=n
-                    )
-                except KeyError as e:
-                    logging.debug(str(repr(e)))
-                else:
-                    break
-            elif self.data_dir_struc[n].lower() == 'gfdl':
-                try:
-                    files = self._get_input_data_paths_gfdl_dir_struct(
-                        name, data_direc, start_date.year,
-                        end_date.year, n=n
-                    )
-                except:
-                    raise
-                else:
-                    break
-            elif self.data_dir_struc[n].lower() == 'gfdl_repo':
-                try:
-                    files = self._get_input_data_paths_gfdl_repo(name, n=n)
-                except IOError as e:
-                    logging.debug(str(repr(e)))
-                else:
-                    break
-            else:
-                raise ValueError("Specified directory type not supported"
-                                 ": {}".format(self.data_dir_struc[n]))
-        else:
-            msg = ("netCDF files for calc object `{0}`, variable `{1}`, year "
-                   "range {2}-{3}, in directory {4}, not found")
-            raise IOError(msg.format(self, var, start_date, end_date,
-                                     data_direc))
-        paths = list(set(files))
-        paths.sort()
-        return paths
+    #     Files chosen depend on the specified variables and time interval and
+    #     the attributes of the netCDF files.
+    #     """
+    #     data_direc = self._get_data_direc(n)
+    #     # Cycle through possible names until the data is found.
+    #     for name in var.names:
+    #         if self.data_dir_struc[n] == 'one_dir':
+    #             try:
+    #                 files = self._get_input_data_paths_one_dir(
+    #                     name, data_direc, n=n
+    #                 )
+    #             except KeyError as e:
+    #                 logging.debug(str(repr(e)))
+    #             else:
+    #                 break
+    #         elif self.data_dir_struc[n].lower() == 'gfdl':
+    #             try:
+    #                 files = self._get_input_data_paths_gfdl_dir_struct(
+    #                     name, data_direc, start_date.year,
+    #                     end_date.year, n=n
+    #                 )
+    #             except:
+    #                 raise
+    #             else:
+    #                 break
+    #         elif self.data_dir_struc[n].lower() == 'gfdl_repo':
+    #             try:
+    #                 files = self._get_input_data_paths_gfdl_repo(name, n=n)
+    #             except IOError as e:
+    #                 logging.debug(str(repr(e)))
+    #             else:
+    #                 break
+    #         else:
+    #             raise ValueError("Specified directory type not supported"
+    #                              ": {}".format(self.data_dir_struc[n]))
+    #     else:
+    #         msg = ("netCDF files for calc object `{0}`, variable `{1}`, year "
+    #                "range {2}-{3}, in directory {4}, not found")
+    #         raise IOError(msg.format(self, var, start_date, end_date,
+    #                                  data_direc))
+    #     paths = list(set(files))
+    #     paths.sort()
+    #     return paths
 
     def _to_desired_dates(self, arr):
         """Restrict the xarray DataArray or Dataset to the desired months."""
@@ -413,75 +421,75 @@ class Calc(object):
                 self.pressure = ds.level
         return ds
 
-    @staticmethod
-    def dt_from_time_bnds(ds):
-        """Compute the timestep durations from the time bounds array."""
-        for name in ['time_bounds', 'time_bnds']:
-            try:
-                bounds = ds[name]
-            except KeyError:
-                pass
-            else:
-                dt = bounds.diff(BOUNDS_STR).squeeze().drop(BOUNDS_STR)
-                # Convert from float # of days to np.timedelta64 in seconds.
-                # TODO: Explicitly check that units are days.
-                dt.values = np.array([np.timedelta64(int(d), 'D')
-                                      for d in dt.values])
-                return dt / np.timedelta64(1, 's')
-        raise ValueError("Time bound data cannot be found in the dataset.\n"
-                         "{0}".format(ds))
+    # @staticmethod
+    # def dt_from_time_bnds(ds):
+    #     """Compute the timestep durations from the time bounds array."""
+    #     for name in ['time_bounds', 'time_bnds']:
+    #         try:
+    #             bounds = ds[name]
+    #         except KeyError:
+    #             pass
+    #         else:
+    #             dt = bounds.diff(BOUNDS_STR).squeeze().drop(BOUNDS_STR)
+    #             # Convert from float # of days to np.timedelta64 in seconds.
+    #             # TODO: Explicitly check that units are days.
+    #             dt.values = np.array([np.timedelta64(int(d), 'D')
+    #                                   for d in dt.values])
+    #             return dt / np.timedelta64(1, 's')
+    #     raise ValueError("Time bound data cannot be found in the dataset.\n"
+    #                      "{0}".format(ds))
 
-    def _get_dt(self, ds):
-        """Find or create the array of timestep durations."""
-        for name in ['average_DT']:
-            try:
-                dt = ds[name]
-            except KeyError:
-                logging.debug("dt array not found for nonexistent key name "
-                              "`{0}`".format(name))
-            else:
-                # Convert to seconds
-                return self._to_desired_dates(dt) / np.timedelta64(1, 's')
-        return self._to_desired_dates(self.dt_from_time_bnds(ds))
+    # def _get_dt(self, ds):
+    #     """Find or create the array of timestep durations."""
+    #     for name in ['average_DT']:
+    #         try:
+    #             dt = ds[name]
+    #         except KeyError:
+    #             logging.debug("dt array not found for nonexistent key name "
+    #                           "`{0}`".format(name))
+    #         else:
+    #             # Convert to seconds
+    #             return self._to_desired_dates(dt) / np.timedelta64(1, 's')
+    #     return self._to_desired_dates(self.dt_from_time_bnds(ds))
 
-    def _create_input_data_obj(self, var, start_date=False,
-                               end_date=False, n=0, set_dt=False,
-                               set_pfull=False):
-        """Create xarray.DataArray for the Var from files on disk.
+    # def _create_input_data_obj(self, var, start_date=False,
+    #                            end_date=False, n=0, set_dt=False,
+    #                            set_pfull=False):
+    #     """Create xarray.DataArray for the Var from files on disk.
 
-        """
-        paths = self._get_input_data_paths(var, start_date, end_date, n)
-        # TODO: refactor `dmget` to more general pre-processing step that
-        #       user can specify in main or via a config.
-        utils.io.dmget(paths)
-        ds = xr.open_mfdataset(paths, decode_cf=False)
-        # Workaround for years < 1678 causing overflows.
-        if start_date < pd.Timestamp.min:
-            ds = utils.times.numpy_datetime_workaround_encode_cf(ds)
-        ds = xr.decode_cf(ds, decode_times=True)
-        ds = self._add_grid_attributes(ds, n)
-        for name in var.names:
-            try:
-                arr = ds[name]
-            except KeyError:
-                pass
-            else:
-                break
-        else:
-            raise KeyError('Variable not found: {}'.format(var))
-        # At least one variable has to get us the dt array also.
-        if set_dt:
-            try:
-                self.dt = self._get_dt(ds)
-            except ValueError:
-                pass
-        # At least one variable has to get us the pfull array, if it's needed.
-        if set_pfull:
-            try:
-                self.pfull_coord = ds[PFULL_STR]
-            except KeyError:
-                pass
-        return arr.load()
+    #     """
+    #     paths = self._get_input_data_paths(var, start_date, end_date, n)
+    #     # TODO: refactor `dmget` to more general pre-processing step that
+    #     #       user can specify in main or via a config.
+    #     utils.io.dmget(paths)
+    #     ds = xr.open_mfdataset(paths, decode_cf=False)
+    #     # Workaround for years < 1678 causing overflows.
+    #     if start_date < pd.Timestamp.min:
+    #         ds = utils.times.numpy_datetime_workaround_encode_cf(ds)
+    #     ds = xr.decode_cf(ds, decode_times=True)
+    #     ds = self._add_grid_attributes(ds, n)
+    #     for name in var.names:
+    #         try:
+    #             arr = ds[name]
+    #         except KeyError:
+    #             pass
+    #         else:
+    #             break
+    #     else:
+    #         raise KeyError('Variable not found: {}'.format(var))
+    #     # At least one variable has to get us the dt array also.
+    #     if set_dt:
+    #         try:
+    #             self.dt = self._get_dt(ds)
+    #         except ValueError:
+    #             pass
+    #     # At least one variable has to get us the pfull array, if it's needed.
+    #     if set_pfull:
+    #         try:
+    #             self.pfull_coord = ds[PFULL_STR]
+    #         except KeyError:
+    #             pass
+    #     return arr.load()
 
     def _get_pressure_from_p_coords(self, ps, name='p', n=0):
         """Get pressure or pressure thickness array for data on p-coords."""
@@ -513,8 +521,15 @@ class Calc(object):
         try:
             ps = self._ps_data
         except AttributeError:
-            self._ps_data = self._create_input_data_obj(self.ps, start_date,
-                                                        end_date)
+            # self._ps_data = self._create_input_data_obj(self.ps, start_date,
+            #                                            end_date)
+            self._ps_data = self.DataLoader.load_variable(
+                self.ps, start_date, end_date, **self.data_loader_attrs)
+            name = self._ps_data.name
+            self._ps_data = self._add_grid_attributes(
+                self._ps_data.to_dataset(name), 0)
+            self._ps_data = self._ps_data[name]
+
             ps = self._ps_data
         if self.dtype_in_vert == 'pressure':
             return self._get_pressure_from_p_coords(ps, name=var.name, n=n)
@@ -562,9 +577,33 @@ class Calc(object):
             set_dt = True if not hasattr(self, 'dt') else False
             cond_pfull = ((not hasattr(self, 'pfull')) and var.def_vert and
                           self.dtype_in_vert == ETA_STR)
-            data = self._create_input_data_obj(var, start_date, end_date, n=n,
-                                               set_dt=set_dt,
-                                               set_pfull=cond_pfull)
+            data = self.DataLoader.load_variable(var, start_date, end_date,
+                                                 **self.data_loader_attrs)
+            # 2017-01-13 [SKC]: Load variable returns a DataArray (for now)
+            # therefore to add grid attributes from the Model object and to
+            # add pressure coordinates, we need to convert things to a
+            # Dataset.  Ultimately we want a DataArray, so we select
+            # the relevant variable based on its name.  load_variable makes
+            # sure this is the official internal name of the variable
+            # ahead of time.
+            name = data.name
+            data = self._add_grid_attributes(data.to_dataset(data.name), 0)
+            data = data[name]
+#            data = self._create_input_data_obj(var, start_date, end_date, n=n,
+#                                               set_dt=set_dt,
+#                                               set_pfull=cond_pfull)
+            # I'm not entirely sure what this does, but I'm lifting it from
+            # _create_input_data_obj so that it takes place.
+            if cond_pfull:
+                try:
+                    self.pfull_coord = data[PFULL_STR]
+                except KeyError:
+                    pass
+            if set_dt:
+                if internal_names.AVERAGE_DT_STR in data:
+                    self.dt = data[internal_names.AVERAGE_DT_STR]
+                else:
+                    pass
             # Force all data to be at full pressure levels, not half levels.
             if self.dtype_in_vert == ETA_STR and var.def_vert == 'phalf':
                 data = utils.vertcoord.to_pfull_from_phalf(data,

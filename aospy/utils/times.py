@@ -191,13 +191,18 @@ def numpy_datetime_workaround_encode_cf(ds):
     xarray.Dataset
 
     """
-    time = ds[TIME_STR]
+    time = ds[internal_names.TIME_STR]
     units = time.attrs['units']
     units_yr = units.split(' since ')[1].split('-')[0]
-    min_yr = xr.decode_cf(time.to_dataset('dummy'))['time'].values[0].year
+    min_yr_decoded = xr.decode_cf(time.to_dataset('dummy'))
+    min_yr = min_yr_decoded[internal_names.TIME_STR].values[0].year
     new_units_yr = pd.Timestamp.min.year + 2 - min_yr
     new_units = units.replace(units_yr, str(new_units_yr))
-    time.attrs['units'] = new_units
+
+    for VAR_STR in internal_names.TIME_VAR_STRS:
+        if VAR_STR in ds:
+            var = ds[VAR_STR]
+            var.attrs['units'] = new_units
     return ds
 
 

@@ -20,7 +20,7 @@ class Run(object):
                  data_files=None, default_start_date=None,
                  default_end_date=None, ens_mem_prefix=None,
                  ens_mem_ext=None, ens_mem_suffix=None, tags=None,
-                 idealized=False):
+                 idealized=False, data_loader=None):
         """Instantiate a `Run` object."""
         self.name = '' if name is None else name
         self.description = '' if description is None else description
@@ -45,6 +45,8 @@ class Run(object):
         self.ens_mem_suffix = ens_mem_suffix
         self.data_direc = _set_direc(data_direc, ens_mem_prefix, ens_mem_ext,
                                      ens_mem_suffix)
+
+        self.DataLoader = data_loader
 
     def __str__(self):
         return 'Run instance "%s"' % self.name
