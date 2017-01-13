@@ -1,9 +1,11 @@
 """aospy DataLoader objects"""
+import os
+
 import xarray as xr
 from glob import glob
 
 from . import internal_names
-from .utils import times
+from .utils import times, io
 
 _TIME_SHIFT_ATTRS = ['shift_{}'.format(intvl) for intvl in
                      ['years', 'months', 'days', 'hours']]
@@ -183,7 +185,8 @@ class DataLoader(object):
         ds.set_coords(grid_attrs_in_ds, inplace=True)
         return ds
 
-    def _generate_file_set(self, var, start_date, end_date, intvl_in, vert_in):
+    def _generate_file_set(self, var, start_date, end_date, domain, intvl_in,
+                           dtype_in_vert, dtype_in_time, intvl_out):
         raise NotImplementedError(
             'All DataLoaders require a _generate_file_set method')
 
@@ -202,26 +205,99 @@ class DictDataLoader(DataLoader):
         """
         self.file_map = file_map
 
-    def _generate_file_set(self, var, start_date, end_date, intvl_in, vert_in):
+    def _generate_file_set(self, var, start_date, end_date, domain, intvl_in,
+                           dtype_in_vert, dtype_in_time, intvl_out):
         """Returns the file_set for the given interval in."""
         return self.file_map[intvl_in]
+
+
+class OneDirDataLoader(DataLoader):
+    """A data loader that locates files based on a dictionary mapping of
+    variables to filesets."""
+    def __init__(self, file_map=None):
+        """Create a new `OneDirDataLoader`
+
+        Parameters
+        ----------
+        file_map : dict
+            A dict mapping intvl_in to dictionaries mapping Var
+            objects to lists of files
+        """
+        self.file_map = file_map
+
+    def _generate_file_set(self, var, start_date, end_date, domain, intvl_in,
+                           dtype_in_vert, dtype_in_time, intvl_out):
+        for name in var.names:
+            try:
+                return self.file_map[intvl_in][name]
+            except KeyError:
+                pass
+        raise KeyError('Files for the var {0} cannot be found in for the '
+                       'intvl_in {1} in this'
+                       ' OneDirDataLoader'.format(var, intvl_in))
 
 
 class GFDLDataLoader(DataLoader):
     """A data loader that locates files based on GFDL post-processing naming
     conventions.
     """
-    def __init__(self, data_in_dur=None):
-        """Create a new `GFDLDataLoader`"""
-        self.data_in_dur = data_in_dur
+    def __init__(self, data_direc=None, data_dur=None, data_start_date=None,
+                 data_end_date=None):
+        """Create a new `GFDLDataLoader`
 
-    def _generate_file_set(self, var, start_date, end_date, intvl_in, vert_in):
+        Parameters
+        ----------
+        data_direc : str
+            Root directory of data files
+        data_dur : int
+            Number of years included per post-processed file
+        data_start_date : datetime.datetime
+            Start date of data files
+        data_end_date : datetime.datetime
+            End date of data files
+        """
+        self.data_dur = data_dur
+        self.data_direc = data_direc
+        self.data_start_date = data_start_date
+        self.data_end_date = data_end_date
+
+    def _generate_file_set(self, var, start_date, end_date, domain, intvl_in,
+                           dtype_in_vert, dtype_in_time, intvl_out):
         for name in var.names:
-            file_set = self._input_data_paths_gfdl()
+            file_set = self._input_data_paths_gfdl(
+                name, start_date, end_date, domain, intvl_in, dtype_in_vert,
+                dtype_in_time, intvl_out)
             if glob(file_set):
                 return file_set
         raise IOError('Files for the var {0} cannot be located'
-                      'using GFDL postprocessing conventions'.format(var))
+                      'using GFDL post-processing conventions'.format(var))
 
-    def _input_data_paths_gfdl():
-        pass
+    def _input_data_paths_gfdl(self, name, start_date, end_date, domain,
+                               intvl_in, dtype_in_vert, dtype_in_time,
+                               intvl_out):
+        dtype_lbl = dtype_in_time
+        if intvl_in == 'daily':
+            domain += '_daily'
+        if dtype_in_vert == internal_names.ETA_STR and name != 'ps':
+            domain += '_level'
+        if dtype_in_time == 'inst':
+            domain += '_inst'
+            dtype_lbl = 'ts'
+        if 'monthly_from_' in dtype_in_time:
+            dtype = dtype_in_time.replace('monthly_from_', '')
+            dtype_lbl = dtype
+        else:
+            dtype = dtype_in_time
+        dur_str = str(self.data_dur) + 'yr'
+        if dtype_in_time == 'av':
+            subdir = intvl_in + '_' + dur_str
+        else:
+            subdir = os.path.join(intvl_in, dur_str)
+        direc = os.path.join(self.data_direc, domain, dtype_lbl, subdir)
+        files = [os.path.join(direc, io.data_name_gfdl(
+                    name, domain, dtype, intvl_in, year, intvl_out,
+                    self.data_start_date.year, self.data_in_dur))
+                 for year in range(start_date.year, end_date.year + 1)]
+        files = list(set(files))
+        files.sort()
+        return files
