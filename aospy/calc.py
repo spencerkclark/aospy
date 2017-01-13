@@ -153,7 +153,7 @@ class CalcInterface(object):
         self.end_date_xarray = (self.start_date_xarray +
                                 (self.end_date - self.start_date))
 
-        # First test of this
+        # Add DataLoader logic
         self.time_offset = time_offset
         self.DataLoader = self.run[0].DataLoader
         self.data_loader_attrs = dict(
@@ -253,136 +253,18 @@ class Calc(object):
 
         self.data_out = {}
 
-    # def _data_files_one_dir(self, name, n=0):
-    #     """Get the file names of the files in a single directory"""
-    #     if self.intvl_in in self.data_files[n]:
-    #         if isinstance(self.data_files[n][self.intvl_in][name], str):
-    #             data_files = [self.data_files[n][self.intvl_in][name]]
-    #         else:
-    #             data_files = self.data_files[n][self.intvl_in][name]
-    #     else:
-    #         if isinstance(self.data_files[n][name], str):
-    #             data_files = [self.data_files[n][name]]
-    #         else:
-    #             data_files = self.data_files[n][name]
-    #     return data_files
-
-    # def _get_input_data_paths_one_dir(self, name, data_direc, n=0):
-    #     """Get the names of netCDF files when all in same directory."""
-    #     data_files = self._data_files_one_dir(name, n)
-    #     # data_files may hold absolute or relative paths
-    #     paths = []
-    #     for nc in data_files:
-    #         full = os.path.join(data_direc, nc)
-    #         if os.path.isfile(nc):
-    #             paths.append(nc)
-    #         elif os.path.isfile(full):
-    #             paths.append(full)
-    #         else:
-    #             logging.info("Specified netCDF file `{}` not found".format(nc))
-    #     # Remove duplicate entries.
-    #     files = list(set(paths))
-    #     files.sort()
-    #     return files
-
+    # TODO: Factor into DataLoader collection
     def _get_input_data_paths_gfdl_repo(self, name, n=0):
         """Get the names of netCDF files from a GFDL repo on /archive."""
         return self.model[n].find_data_direc_repo(
             run_name=self.run[n].name, var_name=name
         )
 
-    # def _get_input_data_paths_gfdl_dir_struct(self, name, data_direc,
-    #                                           start_year, end_year, n=0):
-    #     """Get paths to netCDF files save in GFDL standard output format."""
-    #     domain = self.domain
-    #     dtype_lbl = self.dtype_in_time
-    #     if self.intvl_in == 'daily':
-    #         domain += '_daily'
-    #     if self.dtype_in_vert == ETA_STR and name != 'ps':
-    #         domain += '_level'
-    #     if self.dtype_in_time == 'inst':
-    #         domain += '_inst'
-    #         dtype_lbl = 'ts'
-    #     if 'monthly_from_' in self.dtype_in_time:
-    #         dtype = self.dtype_in_time.replace('monthly_from_', '')
-    #         dtype_lbl = dtype
-    #     else:
-    #         dtype = self.dtype_in_time
-    #     dur_str = str(self.data_dur[n]) + 'yr'
-    #     if self.dtype_in_time == 'av':
-    #         subdir = self.intvl_in + '_' + dur_str
-    #     else:
-    #         subdir = os.path.join(self.intvl_in, dur_str)
-    #     direc = os.path.join(data_direc, domain, dtype_lbl, subdir)
-    #     files = [os.path.join(direc, utils.io.data_name_gfdl(
-    #              name, domain, dtype, self.intvl_in, year, self.intvl_out,
-    #              self.data_start_date[n].year, self.data_dur[n]
-    #              )) for year in range(start_year, end_year + 1)]
-    #     # Remove duplicate entries.
-    #     files = list(set(files))
-    #     files.sort()
-    #     return files
-
-    # def _get_data_direc(self, n):
-    #     if isinstance(self.data_direc, str):
-    #         return self.data_direc
-    #     if isinstance(self.data_direc, (list, tuple)):
-    #         return self.data_direc[n]
-    #     raise IOError("data_direc must be string, list, or tuple: "
-    #                   "{}".format(self.data_direc))
-
-    # def _get_input_data_paths(self, var, start_date=False,
-    #                           end_date=False, n=0):
-    #     """Create xarray.DataArray of the variable from its netCDF files.
-
-    #     Files chosen depend on the specified variables and time interval and
-    #     the attributes of the netCDF files.
-    #     """
-    #     data_direc = self._get_data_direc(n)
-    #     # Cycle through possible names until the data is found.
-    #     for name in var.names:
-    #         if self.data_dir_struc[n] == 'one_dir':
-    #             try:
-    #                 files = self._get_input_data_paths_one_dir(
-    #                     name, data_direc, n=n
-    #                 )
-    #             except KeyError as e:
-    #                 logging.debug(str(repr(e)))
-    #             else:
-    #                 break
-    #         elif self.data_dir_struc[n].lower() == 'gfdl':
-    #             try:
-    #                 files = self._get_input_data_paths_gfdl_dir_struct(
-    #                     name, data_direc, start_date.year,
-    #                     end_date.year, n=n
-    #                 )
-    #             except:
-    #                 raise
-    #             else:
-    #                 break
-    #         elif self.data_dir_struc[n].lower() == 'gfdl_repo':
-    #             try:
-    #                 files = self._get_input_data_paths_gfdl_repo(name, n=n)
-    #             except IOError as e:
-    #                 logging.debug(str(repr(e)))
-    #             else:
-    #                 break
-    #         else:
-    #             raise ValueError("Specified directory type not supported"
-    #                              ": {}".format(self.data_dir_struc[n]))
-    #     else:
-    #         msg = ("netCDF files for calc object `{0}`, variable `{1}`, year "
-    #                "range {2}-{3}, in directory {4}, not found")
-    #         raise IOError(msg.format(self, var, start_date, end_date,
-    #                                  data_direc))
-    #     paths = list(set(files))
-    #     paths.sort()
-    #     return paths
-
-    # 2017-01-13 [SKC]:
+    # 2017-01-13 [SKC]
     # The absolute time bounds of our selection are now handled in DataLoader.
     # We still need a function to select times within that subset, however.
-    # Leaving this as is for now.
+    # Leaving this as is for now, since it will still work, but is duplicating
+    # some logic.
     def _to_desired_dates(self, arr):
         """Restrict the xarray DataArray or Dataset to the desired months."""
         times = utils.times.extract_date_range_and_months(
@@ -456,8 +338,6 @@ class Calc(object):
         try:
             ps = self._ps_data
         except AttributeError:
-            # self._ps_data = self._create_input_data_obj(self.ps, start_date,
-            #                                            end_date)
             self._ps_data = self.DataLoader.load_variable(
                 self.ps, start_date, end_date, self.time_offset,
                 **self.data_loader_attrs)
@@ -473,16 +353,6 @@ class Calc(object):
             return self._get_pressure_from_eta_coords(ps, name=var.name, n=n)
         raise ValueError("`dtype_in_vert` must be either 'pressure' or "
                          "'sigma' for pressure data")
-
-    # def _correct_gfdl_inst_time(self, arr):
-    #     """Correct off-by-one error in GFDL instantaneous model data."""
-    #     if self.intvl_in.endswith('hr'):
-    #         offset = -1*int(self.intvl_in[0])
-    #     else:
-    #         offset = 0
-    #     time = utils.times.apply_time_offset(arr[TIME_STR], hours=offset)
-    #     arr[TIME_STR] = time
-    #     return arr
 
     def _get_input_data(self, var, start_date, end_date, n):
         """Get the data for a single variable over the desired date range."""
@@ -501,8 +371,6 @@ class Calc(object):
         elif var.name in ('p', 'dp'):
             data = self._get_pressure_vals(var, start_date, end_date)
             if self.dtype_in_vert == ETA_STR:
-                # if self.dtype_in_time == 'inst':
-                #     data = self._correct_gfdl_inst_time(data)
                 return self._to_desired_dates(data)
             return data
         # Get grid, time, etc. arrays directly from model object
@@ -526,11 +394,6 @@ class Calc(object):
             name = data.name
             data = self._add_grid_attributes(data.to_dataset(data.name), 0)
             data = data[name]
-#            data = self._create_input_data_obj(var, start_date, end_date, n=n,
-#                                               set_dt=set_dt,
-#                                               set_pfull=cond_pfull)
-            # I'm not entirely sure what this does, but I'm lifting it from
-            # _create_input_data_obj so that it takes place.
             if cond_pfull:
                 try:
                     self.pfull_coord = data[PFULL_STR]
@@ -547,8 +410,6 @@ class Calc(object):
                                                            self.pfull_coord)
         # Correct GFDL instantaneous data time indexing problem.
         if var.def_time:
-            # if self.dtype_in_time == 'inst':
-            #    data = self._correct_gfdl_inst_time(data)
             # Restrict to the desired dates within each year.
             if self.dtype_in_time != 'av':
                 return self._to_desired_dates(data)
