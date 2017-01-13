@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 """Test suite for aospy.data_loader module."""
 import unittest
+from datetime import datetime
 import xarray as xr
 import numpy as np
 
-from aospy.data_loader import DataLoader, DictDataLoader, GFDLDataLoader
+from aospy.data_loader import (DataLoader, DictDataLoader, GFDLDataLoader,
+                               OneDirDataLoader)
 from data.objects.examples import condensation_rain, convection_rain, precip
 from aospy import (LAT_STR, LON_STR, TIME_STR, TIME_BOUNDS_STR, NV_STR,
                    SFC_AREA_STR)
@@ -13,6 +15,9 @@ from aospy import (LAT_STR, LON_STR, TIME_STR, TIME_BOUNDS_STR, NV_STR,
 class AospyDataLoaderTestCase(unittest.TestCase):
     def setUp(self):
         self.DataLoader = DataLoader()
+        self.generate_file_set_args = (condensation_rain, datetime(2000, 1, 1),
+                                       datetime(2002, 12, 31), 'atmos',
+                                       'monthly', 'sigma', 'ts', None)
         time_bounds = np.array([[0, 31], [31, 59], [59, 90]])
         nv = np.array([0, 1])
         time = np.array([15, 46, 74])
@@ -80,6 +85,23 @@ class TestDictDataLoader(TestDataLoader):
     def setUp(self):
         super(TestDictDataLoader, self).setUp()
         self.DataLoader = DictDataLoader()
+
+
+class TestOneDirDataLoader(TestDataLoader):
+    def setUp(self):
+        super(TestOneDirDataLoader, self).setUp()
+        file_map = {'monthly': {'condensation_rain': ['a.nc']}}
+        self.DataLoader = OneDirDataLoader(file_map)
+
+    def test_generate_fileset(self):
+        result = self.DataLoader._generate_file_set(
+            *self.generate_file_set_args)
+        expected = ['a.nc']
+        self.assertEqual(result, expected)
+
+        with self.assertRaises(KeyError):
+            result = self.DataLoader._generate_file_set(
+                convection_rain, *self.generate_file_set_args[1:])
 
 
 class TestGFDLDataLoader(TestDataLoader):
