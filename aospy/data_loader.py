@@ -1,5 +1,6 @@
 """aospy DataLoader objects"""
 import os
+import copy
 
 import numpy as np
 import xarray as xr
@@ -264,12 +265,15 @@ class GFDLDataLoader(DataLoader):
     """A data loader that locates files based on GFDL post-processing naming
     conventions.
     """
-    def __init__(self, data_direc=None, data_dur=None, data_start_date=None,
-                 data_end_date=None):
+    def __init__(self, template=None, data_direc=None, data_dur=None,
+                 data_start_date=None, data_end_date=None):
         """Create a new `GFDLDataLoader`
 
         Parameters
         ----------
+        template : GFDLDataLoader
+            Optional argument to specify a base GFDLDataLoader to inherit
+            parameters from
         data_direc : str
             Root directory of data files
         data_dur : int
@@ -279,10 +283,29 @@ class GFDLDataLoader(DataLoader):
         data_end_date : datetime.datetime
             End date of data files
         """
-        self.data_dur = data_dur
-        self.data_direc = data_direc
-        self.data_start_date = data_start_date
-        self.data_end_date = data_end_date
+        attrs = ['data_direc', 'data_dur', 'data_start_date', 'data_end_date']
+        if template:
+            for attr in attrs:
+                setattr(self, attr, getattr(template, attr))
+
+            # Override attributes that aren't none
+            if data_direc:
+                self.data_direc = data_direc
+            else:
+                self.data_direc = template.data_direc
+            if data_dur:
+                self.data_dur = data_dur
+            else:
+                self.data_dur = template.data_dur
+            if data_start_date:
+                self.data_start_date = data_start_date
+            if data_end_date:
+                self.data_end_date = data_end_date
+        else:
+            self.data_direc = data_direc
+            self.data_dur = data_dur
+            self.data_start_date = data_start_date
+            self.data_end_date = data_end_date
 
     @staticmethod
     def _maybe_apply_time_shift(da, time_offset, **DataAttrs):

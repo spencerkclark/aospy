@@ -122,7 +122,16 @@ class TestOneDirDataLoader(TestDataLoader):
 class TestGFDLDataLoader(TestDataLoader):
     def setUp(self):
         super(TestGFDLDataLoader, self).setUp()
-        self.DataLoader = GFDLDataLoader()
+        self.DataLoader = GFDLDataLoader(data_direc='', data_dur=5,
+                                         data_start_date=datetime(2000, 1, 1),
+                                         data_end_date=datetime(2002, 12, 31))
+
+    def test_overriding_constructor(self):
+        new = GFDLDataLoader(self.DataLoader, data_direc='/a/')
+        self.assertEqual(new.data_direc, '/a/')
+        self.assertEqual(new.data_dur, self.DataLoader.data_dur)
+        self.assertEqual(new.data_start_date, self.DataLoader.data_start_date)
+        self.assertEqual(new.data_end_date, self.DataLoader.data_end_date)
 
 if __name__ == '__main__':
     unittest.main()
