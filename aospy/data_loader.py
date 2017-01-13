@@ -185,8 +185,9 @@ class DataLoader(object):
         ds.set_coords(grid_attrs_in_ds, inplace=True)
         return ds
 
-    def _generate_file_set(self, var, start_date, end_date, domain, intvl_in,
-                           dtype_in_vert, dtype_in_time, intvl_out):
+    def _generate_file_set(self, var=None, start_date=None, end_date=None,
+                           domain=None, intvl_in=None, dtype_in_vert=None,
+                           dtype_in_time=None, intvl_out=None):
         raise NotImplementedError(
             'All DataLoaders require a _generate_file_set method')
 
@@ -205,10 +206,15 @@ class DictDataLoader(DataLoader):
         """
         self.file_map = file_map
 
-    def _generate_file_set(self, var, start_date, end_date, domain, intvl_in,
-                           dtype_in_vert, dtype_in_time, intvl_out):
+    def _generate_file_set(self, var=None, start_date=None, end_date=None,
+                           domain=None, intvl_in=None, dtype_in_vert=None,
+                           dtype_in_time=None, intvl_out=None):
         """Returns the file_set for the given interval in."""
-        return self.file_map[intvl_in]
+        try:
+            return self.file_map[intvl_in]
+        except KeyError:
+            raise KeyError('File set does not exist for the specified'
+                           ' intvl_in {0}'.format(intvl_in))
 
 
 class OneDirDataLoader(DataLoader):
@@ -225,8 +231,9 @@ class OneDirDataLoader(DataLoader):
         """
         self.file_map = file_map
 
-    def _generate_file_set(self, var, start_date, end_date, domain, intvl_in,
-                           dtype_in_vert, dtype_in_time, intvl_out):
+    def _generate_file_set(self, var=None, start_date=None, end_date=None,
+                           domain=None, intvl_in=None, dtype_in_vert=None,
+                           dtype_in_time=None, intvl_out=None):
         for name in var.names:
             try:
                 return self.file_map[intvl_in][name]
@@ -261,8 +268,9 @@ class GFDLDataLoader(DataLoader):
         self.data_start_date = data_start_date
         self.data_end_date = data_end_date
 
-    def _generate_file_set(self, var, start_date, end_date, domain, intvl_in,
-                           dtype_in_vert, dtype_in_time, intvl_out):
+    def _generate_file_set(self, var=None, start_date=None, end_date=None,
+                           domain=None, intvl_in=None, dtype_in_vert=None,
+                           dtype_in_time=None, intvl_out=None):
         for name in var.names:
             file_set = self._input_data_paths_gfdl(
                 name, start_date, end_date, domain, intvl_in, dtype_in_vert,

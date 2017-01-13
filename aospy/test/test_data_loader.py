@@ -15,9 +15,11 @@ from aospy import (LAT_STR, LON_STR, TIME_STR, TIME_BOUNDS_STR, NV_STR,
 class AospyDataLoaderTestCase(unittest.TestCase):
     def setUp(self):
         self.DataLoader = DataLoader()
-        self.generate_file_set_args = (condensation_rain, datetime(2000, 1, 1),
-                                       datetime(2002, 12, 31), 'atmos',
-                                       'monthly', 'sigma', 'ts', None)
+        self.generate_file_set_args = dict(
+            var=condensation_rain, start_date=datetime(2000, 1, 1),
+            end_date=datetime(2002, 12, 31), domain='atmos',
+            intvl_in='monthly', dtype_in_vert='sigma', dtype_in_time='ts',
+            intvl_out=None)
         time_bounds = np.array([[0, 31], [31, 59], [59, 90]])
         nv = np.array([0, 1])
         time = np.array([15, 46, 74])
@@ -84,7 +86,19 @@ class TestDataLoader(AospyDataLoaderTestCase):
 class TestDictDataLoader(TestDataLoader):
     def setUp(self):
         super(TestDictDataLoader, self).setUp()
-        self.DataLoader = DictDataLoader()
+        file_map = {'monthly': ['a.nc']}
+        self.DataLoader = DictDataLoader(file_map)
+
+    def test_generate_fileset(self):
+        result = self.DataLoader._generate_file_set(
+            **self.generate_file_set_args)
+        expected = ['a.nc']
+        self.assertEquals(result, expected)
+
+        with self.assertRaises(KeyError):
+            self.generate_file_set_args['intvl_in'] = 'daily'
+            result = self.DataLoader._generate_file_set(
+                **self.generate_file_set_args)
 
 
 class TestOneDirDataLoader(TestDataLoader):
@@ -95,13 +109,14 @@ class TestOneDirDataLoader(TestDataLoader):
 
     def test_generate_fileset(self):
         result = self.DataLoader._generate_file_set(
-            *self.generate_file_set_args)
+            **self.generate_file_set_args)
         expected = ['a.nc']
         self.assertEqual(result, expected)
 
         with self.assertRaises(KeyError):
+            self.generate_file_set_args['var'] = convection_rain
             result = self.DataLoader._generate_file_set(
-                convection_rain, *self.generate_file_set_args[1:])
+                **self.generate_file_set_args)
 
 
 class TestGFDLDataLoader(TestDataLoader):
