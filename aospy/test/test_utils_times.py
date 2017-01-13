@@ -20,7 +20,6 @@ from aospy.utils.times import (
     _month_conditional,
     create_monthly_time_array,
     extract_date_range_and_months,
-    enforce_valid_timestamp_date_range,
     set_average_dt_metadata,
     _assert_has_data_for_time,
 )
@@ -237,26 +236,6 @@ class TestUtilsTimes(UtilsTimesTestCase):
                                                months)
         assert actual.identical(desired)
 
-    def test_enforce_valid_timestamp_date_range(self):
-        data = np.zeros((3))
-        time = np.array([0, 31, 59])
-        ds = xr.DataArray(data,
-                          coords=[time],
-                          dims=[TIME_STR],
-                          name='a').to_dataset()
-
-        # Test valid range
-        units_str = 'days since 2000-01-01 00:00:00'
-        ds[TIME_STR].attrs['units'] = units_str
-        ds = enforce_valid_timestamp_date_range(ds)
-        self.assertEqual(ds[TIME_STR].attrs['units'], units_str)
-
-        # Test invalid range
-        ds[TIME_STR].attrs['units'] = 'days since 1677-01-01 00:00:00'
-        expected_year = pd.Timestamp.min.year + 2
-        units_str = 'days since {0}-01-01 00:00:00'.format(expected_year)
-        ds = enforce_valid_timestamp_date_range(ds)
-        self.assertEqual(ds[TIME_STR].attrs['units'], units_str)
 
     def test_set_average_dt_metadata(self):
         time_bounds = np.array([[0, 31], [31, 59], [59, 90]])

@@ -114,7 +114,6 @@ class DataLoader(object):
         -------
         Dataset
         """
-        # ds = times.enforce_valid_timestamp_date_range(ds)
         ds = times.numpy_datetime_workaround_encode_cf(ds)
         if internal_names.TIME_BOUNDS_STR in ds:
             ds = times.set_average_dt_metadata(ds)

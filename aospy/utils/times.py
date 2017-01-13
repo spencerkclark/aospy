@@ -330,41 +330,6 @@ def extract_date_range_and_months(time, start_date, end_date, months):
     return time.sel(time=inds)
 
 
-def enforce_valid_timestamp_date_range(ds):
-    """Applies a year offset to a Dataset or DataArray if pandas
-    Timestamps cannot be constructed for dates represented in the
-    data.
-
-    Must be applied before CF metadata are decoded.
-
-    Parameters
-    ----------
-    ds : Dataset or DataArray
-        Dataset or DataArray to potentially adjust
-
-    Returns
-    -------
-    Dataset or DataArray
-        Dataset or DataArray with adjusted time units attribute
-    """
-    # Note it's redundant to apply this correction via a loop if we default
-    # to using the same time units for time, time_bounds and other time
-    # attributes (as we do in set_average_dt_metadata).
-    for VAR_STR in internal_names.TIME_VAR_STRS:
-        if VAR_STR in ds:
-            freq, ref_date_str = ds[VAR_STR].attrs['units'].split('since')
-            freq = freq.rstrip()
-            try:
-                pd.Timestamp(ref_date_str)
-            except pd.tslib.OutOfBoundsDatetime:
-                year = pd.Timestamp.min.year + 2
-                # TODO: don't hard code Jan. 1 as the reference date.
-                units_str = '{0} since {1}-01-01 00:00:00'.format(freq,
-                                                                  year)
-                ds[VAR_STR].attrs['units'] = units_str
-    return ds
-
-
 def set_average_dt_metadata(ds):
     """If the Dataset or DataArray contains time average data, enforce
     that there are coordinates that track the lower and upper bounds of
