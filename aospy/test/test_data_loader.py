@@ -133,5 +133,17 @@ class TestGFDLDataLoader(TestDataLoader):
         self.assertEqual(new.data_start_date, self.DataLoader.data_start_date)
         self.assertEqual(new.data_end_date, self.DataLoader.data_end_date)
 
+        new = GFDLDataLoader(self.DataLoader, data_dur=6)
+        self.assertEqual(new.data_dur, 6)
+
+        new = GFDLDataLoader(self.DataLoader,
+                             data_start_date=datetime(2001, 1, 1))
+        self.assertEqual(new.data_start_date, datetime(2001, 1, 1))
+
+        new = GFDLDataLoader(self.DataLoader,
+                             data_end_date=datetime(2003, 12, 31))
+        self.assertEqual(new.data_end_date, datetime(2003, 12, 31))
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -1,6 +1,5 @@
 """aospy DataLoader objects"""
 import os
-import copy
 
 import numpy as np
 import xarray as xr
@@ -299,8 +298,12 @@ class GFDLDataLoader(DataLoader):
                 self.data_dur = template.data_dur
             if data_start_date:
                 self.data_start_date = data_start_date
+            else:
+                self.data_start_date = template.data_start_date
             if data_end_date:
                 self.data_end_date = data_end_date
+            else:
+                self.data_end_date = template.data_end_date
         else:
             self.data_direc = data_direc
             self.data_dur = data_dur
