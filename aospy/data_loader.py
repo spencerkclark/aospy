@@ -3,7 +3,6 @@ import os
 
 import numpy as np
 import xarray as xr
-from glob import glob
 
 from . import internal_names
 from .utils import times, io
