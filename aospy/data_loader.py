@@ -379,7 +379,7 @@ class GFDLDataLoader(DataLoader):
         direc = os.path.join(self.data_direc, domain, dtype_lbl, subdir)
         files = [os.path.join(direc, io.data_name_gfdl(
                     name, domain, dtype, intvl_in, year, intvl_out,
-                    self.data_start_date.year, self.data_in_dur))
+                    self.data_start_date.year, self.data_dur))
                  for year in range(start_date.year, end_date.year + 1)]
         files = list(set(files))
         files.sort()
