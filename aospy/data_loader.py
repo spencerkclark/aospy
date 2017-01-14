@@ -64,10 +64,10 @@ class DataLoader(object):
                               np.datetime64(end_date_xarray)).load()
 
     @staticmethod
-    def _maybe_apply_time_shift(da, time_offset, **DataAttrs):
+    def _maybe_apply_time_shift(da, time_offset=None, **DataAttrs):
         """Apply specified time shift to DataArray"""
-        if time_offset:
-            time = times.apply_time_offset(da[internal_names].TIME_STR,
+        if time_offset is not None:
+            time = times.apply_time_offset(da[internal_names.TIME_STR],
                                            **time_offset)
             da[internal_names.TIME_STR] = time
         return da
@@ -288,19 +288,19 @@ class GFDLDataLoader(DataLoader):
                 setattr(self, attr, getattr(template, attr))
 
             # Override attributes that aren't none
-            if data_direc:
+            if data_direc is not None:
                 self.data_direc = data_direc
             else:
                 self.data_direc = template.data_direc
-            if data_dur:
+            if data_dur is not None:
                 self.data_dur = data_dur
             else:
                 self.data_dur = template.data_dur
-            if data_start_date:
+            if data_start_date is not None:
                 self.data_start_date = data_start_date
             else:
                 self.data_start_date = template.data_start_date
-            if data_end_date:
+            if data_end_date is not None:
                 self.data_end_date = data_end_date
             else:
                 self.data_end_date = template.data_end_date
@@ -311,22 +311,25 @@ class GFDLDataLoader(DataLoader):
             self.data_end_date = data_end_date
 
     @staticmethod
-    def _maybe_apply_time_shift(da, time_offset, **DataAttrs):
+    def _maybe_apply_time_shift(da, time_offset=None, **DataAttrs):
         """Special logic to aid in automation of time offsetting for GFDL
         post-processed data"""
-        if time_offset:
+        if time_offset is not None:
             time = times.apply_time_offset(da[internal_names.TIME_STR],
                                            **time_offset)
             da[internal_names.TIME_STR] = time
         else:
-            if DataAttrs['dtype_in_time'] == 'inst':
-                if DataAttrs['intvl_in'].endswith('hr'):
-                    offset = -1 * int(DataAttrs['intvl_in'])
-                else:
-                    offset = 0
-                time = times.apply_time_offset(da[internal_names.TIME_STR],
-                                               hours=offset)
-                da[internal_names.TIME_STR] = time
+            try:
+                if DataAttrs['dtype_in_time'] == 'inst':
+                    if DataAttrs['intvl_in'].endswith('hr'):
+                        offset = -1 * int(DataAttrs['intvl_in'][0])
+                    else:
+                        offset = 0
+                    time = times.apply_time_offset(da[internal_names.TIME_STR],
+                                                   hours=offset)
+                    da[internal_names.TIME_STR] = time
+            except KeyError:
+                pass
         return da
 
     def _generate_file_set(self, var=None, start_date=None, end_date=None,

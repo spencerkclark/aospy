@@ -41,6 +41,14 @@ class AospyDataLoaderTestCase(unittest.TestCase):
         ds[TIME_BOUNDS_STR].attrs['units'] = units_str
         self.ds = ds
 
+        inst_time = np.array([3, 6, 9])
+        inst_units_str = 'hours since 2000-01-01 00:00:00'
+        inst_ds = ds.copy()
+        inst_ds.drop(TIME_BOUNDS_STR)
+        inst_ds[TIME_STR].values = inst_time
+        inst_ds[TIME_STR].attrs['units'] = inst_units_str
+        self.inst_ds = inst_ds
+
     def tearDown(self):
         pass
 
@@ -82,6 +90,26 @@ class TestDataLoader(AospyDataLoaderTestCase):
         with self.assertRaises(KeyError):
             self.DataLoader._sel_var(ds, precip)
 
+    def test_maybe_apply_time_shift(self):
+        ds = xr.decode_cf(self.ds)
+        da = ds[self.var_name]
+
+        # If you don't pass a time_offset or non-null DataVars,
+        # nothing should happen
+        result = self.DataLoader._maybe_apply_time_shift(da.copy())[TIME_STR]
+        assert result.identical(da[TIME_STR])
+
+        # If you do pass an offset, it should be applied
+        # Why does da get modified in place?
+        offset = self.DataLoader._maybe_apply_time_shift(da.copy(),
+                                                         {'days': 1})
+        result = offset[TIME_STR]
+
+        expected = da[TIME_STR] + np.timedelta64(1, 'D')
+        expected[TIME_STR] = expected
+
+        assert result.identical(expected)
+
 
 class TestDictDataLoader(TestDataLoader):
     def setUp(self):
@@ -93,7 +121,7 @@ class TestDictDataLoader(TestDataLoader):
         result = self.DataLoader._generate_file_set(
             **self.generate_file_set_args)
         expected = ['a.nc']
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
 
         with self.assertRaises(KeyError):
             self.generate_file_set_args['intvl_in'] = 'daily'
@@ -143,6 +171,30 @@ class TestGFDLDataLoader(TestDataLoader):
         new = GFDLDataLoader(self.DataLoader,
                              data_end_date=datetime(2003, 12, 31))
         self.assertEqual(new.data_end_date, datetime(2003, 12, 31))
+
+    def test_maybe_apply_time_offset_inst(self):
+        # Should offset by -3 hours
+        inst_ds = xr.decode_cf(self.inst_ds)
+        self.generate_file_set_args['dtype_in_time'] = 'inst'
+        self.generate_file_set_args['intvl_in'] = '3hr'
+        da = inst_ds[self.var_name]
+        result = self.DataLoader._maybe_apply_time_shift(
+            da.copy(), **self.generate_file_set_args)[TIME_STR]
+
+        expected = da[TIME_STR] + np.timedelta64(-3, 'h')
+        expected[TIME_STR] = expected
+        assert result.identical(expected)
+
+    def test_maybe_apply_time_offset_ts(self):
+        # Should provide no offset by default
+        ds = xr.decode_cf(self.ds)
+        da = ds[self.var_name]
+
+        # If you don't pass a time_offset or non-null DataVars,
+        # nothing should happen
+        result = self.DataLoader._maybe_apply_time_shift(
+            da.copy(), **self.generate_file_set_args)[TIME_STR]
+        assert result.identical(da[TIME_STR])
 
 
 if __name__ == '__main__':
