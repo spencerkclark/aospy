@@ -344,7 +344,7 @@ class Calc(object):
                 **self.data_loader_attrs)
             name = self._ps_data.name
             self._ps_data = self._add_grid_attributes(
-                self._ps_data.to_dataset(name), 0)
+                self._ps_data.to_dataset(name=name), 0)
             self._ps_data = self._ps_data[name]
 
             ps = self._ps_data
@@ -393,7 +393,8 @@ class Calc(object):
             # sure this is the official internal name of the variable
             # ahead of time.
             name = data.name
-            data = self._add_grid_attributes(data.to_dataset(data.name), 0)
+            data = self._add_grid_attributes(
+                data.to_dataset(name=data.name), 0)
             data = data[name]
             if cond_pfull:
                 try:
