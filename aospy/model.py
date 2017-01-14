@@ -24,7 +24,7 @@ class Model(object):
                  default_start_date=None, default_end_date=None,
                  runs={}, default_runs={},
                  load_grid_data=False, repo_version=None,
-                 repo_ens_mem='r1i1p1'):
+                 repo_ens_mem='r1i1p1', data_loader=None):
         self.name = name
         self.description = description
         self.proj = proj
@@ -56,6 +56,8 @@ class Model(object):
         if load_grid_data:
             self.set_grid_data()
             self.grid_data_is_set = True
+
+        self.data_loader = data_loader
 
     def __str__(self):
         return 'Model instance "' + self.name + '"'

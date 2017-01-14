@@ -59,7 +59,8 @@ class CalcInterface(object):
                      'data_dir_struc',
                      'ens_mem_prefix',
                      'ens_mem_ext',
-                     'idealized'):
+                     'idealized',
+                     'data_loader'):
             attr_val = tuple([
                 utils.io.get_parent_attr(rn, attr, strict=False)
                 for rn in self.run
@@ -155,7 +156,7 @@ class CalcInterface(object):
 
         # Add DataLoader logic
         self.time_offset = time_offset
-        self.DataLoader = self.run[0].DataLoader
+        self.data_loader = self.data_loader[0]
         self.data_loader_attrs = dict(
             domain=self.domain, intvl_in=self.intvl_in,
             dtype_in_vert=self.dtype_in_vert,
@@ -338,7 +339,7 @@ class Calc(object):
         try:
             ps = self._ps_data
         except AttributeError:
-            self._ps_data = self.DataLoader.load_variable(
+            self._ps_data = self.data_loader.load_variable(
                 self.ps, start_date, end_date, self.time_offset,
                 **self.data_loader_attrs)
             name = self._ps_data.name
@@ -381,7 +382,7 @@ class Calc(object):
             set_dt = True if not hasattr(self, 'dt') else False
             cond_pfull = ((not hasattr(self, 'pfull')) and var.def_vert and
                           self.dtype_in_vert == ETA_STR)
-            data = self.DataLoader.load_variable(var, start_date, end_date,
+            data = self.data_loader.load_variable(var, start_date, end_date,
                                                  self.time_offset,
                                                  **self.data_loader_attrs)
             # 2017-01-13 [SKC]: Load variable returns a DataArray (for now)

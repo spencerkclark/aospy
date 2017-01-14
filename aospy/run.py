@@ -46,7 +46,7 @@ class Run(object):
         self.data_direc = _set_direc(data_direc, ens_mem_prefix, ens_mem_ext,
                                      ens_mem_suffix)
 
-        self.DataLoader = data_loader
+        self.data_loader = data_loader
 
     def __str__(self):
         return 'Run instance "%s"' % self.name
