@@ -383,8 +383,8 @@ class Calc(object):
             cond_pfull = ((not hasattr(self, 'pfull')) and var.def_vert and
                           self.dtype_in_vert == ETA_STR)
             data = self.data_loader.load_variable(var, start_date, end_date,
-                                                 self.time_offset,
-                                                 **self.data_loader_attrs)
+                                                  self.time_offset,
+                                                  **self.data_loader_attrs)
             # 2017-01-13 [SKC]: Load variable returns a DataArray (for now)
             # therefore to add grid attributes from the Model object and to
             # add pressure coordinates, we need to convert things to a
@@ -483,6 +483,8 @@ class Calc(object):
                 self.dt = dt
         if monthly_mean:
             dt = utils.times.monthly_mean_ts(dt)
+        # Convert dt to units of days to prevent overflow
+        dt = dt / np.timedelta64(1, 'D')
         return local_ts, dt
 
     # TODO: Move to utils.vertcoord

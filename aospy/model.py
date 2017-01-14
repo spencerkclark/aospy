@@ -126,7 +126,7 @@ class Model(object):
             try:
                 ds = xr.open_dataset(path, decode_times=False)
             except TypeError:
-                ds = xr.open_mfdataset(path, decode_times=False)
+                ds = xr.open_mfdataset(path, decode_times=False).load()
             except (RuntimeError, OSError) as e:
                 msg = str(e) + ': {}'.format(path)
                 raise RuntimeError(msg)
