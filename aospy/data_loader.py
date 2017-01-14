@@ -351,7 +351,7 @@ class GFDLDataLoader(DataLoader):
             file_set = self._input_data_paths_gfdl(
                 name, start_date, end_date, domain, intvl_in, dtype_in_vert,
                 dtype_in_time, intvl_out)
-            if glob(file_set):
+            if all([os.path.isfile(filename) for filename in file_set]):
                 return file_set
         raise IOError('Files for the var {0} cannot be located'
                       'using GFDL post-processing conventions'.format(var))
