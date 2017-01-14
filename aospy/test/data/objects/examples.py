@@ -1,7 +1,7 @@
 import os
 
 from aospy import Proj, Model, Run, Var, Region
-from aospy.data_loader import OneDirDataLoader
+from aospy.data_loader import DictDataLoader
 
 ROOT_PATH = os.path.dirname(__file__)
 
@@ -9,17 +9,16 @@ ROOT_PATH = os.path.dirname(__file__)
 def total_precipitation(convection_rain, condensation_rain):
     return convection_rain + condensation_rain
 
-files = [os.path.join(os.path.join(os.path.split(ROOT_PATH)[0], 'netcdf'),
-                      '{:04d}0101.precip_monthly.nc'.format(year))
-         for year in range(4, 7)]
-file_map = {'monthly': {'condensation_rain': files,
-                        'convection_rain': files}}
+files = os.path.join(os.path.join(os.path.split(ROOT_PATH)[0], 'netcdf'),
+                     '000[4-6]0101.precip_monthly.nc')
+file_map = {'monthly': files}
+
 example_run = Run(
     name='example_run',
     description=(
         'Control simulation of the idealized moist model'
     ),
-    data_loader=OneDirDataLoader(file_map)
+    data_loader=DictDataLoader(file_map)
 )
 
 example_model = Model(

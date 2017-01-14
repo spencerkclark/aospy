@@ -23,5 +23,10 @@ class TestIO(AospyIOTestCase):
                   'gfdl.ncrc3-default-repro/1/history/'
                   '00010101.atmos_month.nc'])
 
+        # Test with a pure string argument
+        io.dmget('/home/Spencer.Clark/archive/imr_skc/control/'
+                 'gfdl.ncrc3-default-repro/1/history/'
+                 '00010101.atmos_month.nc')
+
 if __name__ == '__main__':
     sys.exit(unittest.main())

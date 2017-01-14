@@ -210,7 +210,11 @@ class DataLoader(object):
 
 class DictDataLoader(DataLoader):
     """A data loader that corresponds with a dictionary mapping lists of files
-    to interval in tags.
+    to intvl_in tags.
+
+    This is the simplest DataLoader; it is useful for instance if one is
+    dealing with raw model history files, which tend to group all variables
+    of a single output interval into single filesets.
     """
     def __init__(self, file_map=None):
         """Create a new `DictDataLoader`
@@ -233,9 +237,13 @@ class DictDataLoader(DataLoader):
                            ' intvl_in {0}'.format(intvl_in))
 
 
-class OneDirDataLoader(DataLoader):
-    """A data loader that locates files based on a dictionary mapping of
-    variables to filesets."""
+class NestedDictDataLoader(DataLoader):
+    """A data loader that locates files based on a nested dictionary mapping of
+    intvl_in to dictionaries mapping variable names to lists of files.
+
+    This is the most flexible existing type of DataLoader; it allows for the
+    specification of different sets of files for different variables.
+    """
     def __init__(self, file_map=None):
         """Create a new `OneDirDataLoader`
 
@@ -263,6 +271,10 @@ class OneDirDataLoader(DataLoader):
 class GFDLDataLoader(DataLoader):
     """A data loader that locates files based on GFDL post-processing naming
     conventions.
+
+    This is an example of a domain-specific custom DataLoader, designed
+    specifically for finding files output by GFDL's model history file
+    post-processing tools.
     """
     def __init__(self, template=None, data_direc=None, data_dur=None,
                  data_start_date=None, data_end_date=None):

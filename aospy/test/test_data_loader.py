@@ -6,7 +6,7 @@ import xarray as xr
 import numpy as np
 
 from aospy.data_loader import (DataLoader, DictDataLoader, GFDLDataLoader,
-                               OneDirDataLoader)
+                               NestedDictDataLoader)
 from data.objects.examples import condensation_rain, convection_rain, precip
 from aospy import (LAT_STR, LON_STR, TIME_STR, TIME_BOUNDS_STR, NV_STR,
                    SFC_AREA_STR)
@@ -129,11 +129,11 @@ class TestDictDataLoader(TestDataLoader):
                 **self.generate_file_set_args)
 
 
-class TestOneDirDataLoader(TestDataLoader):
+class TestNestedDictDataLoader(TestDataLoader):
     def setUp(self):
-        super(TestOneDirDataLoader, self).setUp()
+        super(TestNestedDictDataLoader, self).setUp()
         file_map = {'monthly': {'condensation_rain': ['a.nc']}}
-        self.DataLoader = OneDirDataLoader(file_map)
+        self.DataLoader = NestedDictDataLoader(file_map)
 
     def test_generate_fileset(self):
         result = self.DataLoader._generate_file_set(

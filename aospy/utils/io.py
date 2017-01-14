@@ -248,6 +248,8 @@ def data_name_gfdl(name, domain, data_type, intvl_type, data_yr,
 def dmget(files_list):
     """Call GFDL command 'dmget' to access archived files."""
     try:
+        if isinstance(files_list, str):
+            files_list = [files_list]
         subprocess.call(['dmget'] + files_list)
     except OSError:
         logging.warning('dmget command not found in this machine')
