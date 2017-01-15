@@ -27,9 +27,9 @@ class DataLoader(object):
         ----------
         var : Var
             aospy Var object
-        start_date : netCDF4.netcdftime or np.datetime64
+        start_date : datetime.datetime
             start date for interval
-        end_date : netCDF4.netcdftime or np.datetime64
+        end_date : datetime.datetime
             end date for interval
         time_offset : dict
             Option to add a time offset to the time coordinate to correct for
@@ -216,15 +216,23 @@ class DictDataLoader(DataLoader):
     This is the simplest DataLoader; it is useful for instance if one is
     dealing with raw model history files, which tend to group all variables
     of a single output interval into single filesets.
+
+    Parameters
+    ----------
+    file_map : dict
+        A dict mapping an input interval to a list of files
+
+    Examples
+    --------
+    Case of two sets of files, one with monthly average output, and one with
+    3-hourly output.
+
+    >>> file_map = {'monthly': '000[4-6]0101.atmos_month.nc',
+    ...             '3hr': '000[4-6]0101.atmos_8xday.nc'}
+    >>> data_loader = DictDataLoader(file_map)
     """
     def __init__(self, file_map=None):
-        """Create a new `DictDataLoader`
-
-        Parameters
-        ----------
-        file_map : dict
-            A dict mapping an input interval to a list of files
-        """
+        """Create a new DictDataLoader"""
         self.file_map = file_map
 
     def _generate_file_set(self, var=None, start_date=None, end_date=None,
@@ -244,16 +252,24 @@ class NestedDictDataLoader(DataLoader):
 
     This is the most flexible existing type of DataLoader; it allows for the
     specification of different sets of files for different variables.
+
+    Parameters
+    ----------
+    file_map : dict
+        A dict mapping intvl_in to dictionaries mapping Var
+        objects to lists of files
+
+    Examples
+    --------
+    Case of a set of monthly average files for large scale precipitation,
+    and another monthly average set of files for convective precipitation.
+
+    >>> file_map = {'monthly': {'precl': '000[4-6]0101.precl.nc',
+    ...                         'precc': '000[4-6]0101.precc.nc'}}
+    >>> data_loader = NestedDictDataLoader(file_map)
     """
     def __init__(self, file_map=None):
-        """Create a new `OneDirDataLoader`
-
-        Parameters
-        ----------
-        file_map : dict
-            A dict mapping intvl_in to dictionaries mapping Var
-            objects to lists of files
-        """
+        """Create a new NestedDictDataLoader"""
         self.file_map = file_map
 
     def _generate_file_set(self, var=None, start_date=None, end_date=None,
@@ -276,25 +292,37 @@ class GFDLDataLoader(DataLoader):
     This is an example of a domain-specific custom DataLoader, designed
     specifically for finding files output by GFDL's model history file
     post-processing tools.
+
+    Parameters
+    ----------
+    template : GFDLDataLoader
+        Optional argument to specify a base GFDLDataLoader to inherit
+        parameters from
+    data_direc : str
+        Root directory of data files
+    data_dur : int
+        Number of years included per post-processed file
+    data_start_date : datetime.datetime
+        Start date of data files
+    data_end_date : datetime.datetime
+        End date of data files
+
+
+    Examples
+    --------
+    Case without a template to start from.
+
+    >>> base = GFDLDataLoader(data_direc='/archive/control/pp', data_dur=5,
+    ...                       data_start_date=datetime(2000, 1, 1),
+    ...                       data_end_date=datetime(2010, 12, 31))
+
+    Case with a starting template.
+
+    >>> data_loader = GFDLDataLoader(base, data_direc='/archive/2xCO2/pp')
     """
     def __init__(self, template=None, data_direc=None, data_dur=None,
                  data_start_date=None, data_end_date=None):
-        """Create a new `GFDLDataLoader`
-
-        Parameters
-        ----------
-        template : GFDLDataLoader
-            Optional argument to specify a base GFDLDataLoader to inherit
-            parameters from
-        data_direc : str
-            Root directory of data files
-        data_dur : int
-            Number of years included per post-processed file
-        data_start_date : datetime.datetime
-            Start date of data files
-        data_end_date : datetime.datetime
-            End date of data files
-        """
+        """Create a new GFDLDataLoader"""
         attrs = ['data_direc', 'data_dur', 'data_start_date', 'data_end_date']
         if template:
             for attr in attrs:
