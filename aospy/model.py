@@ -4,6 +4,7 @@ import glob
 import logging
 import os
 
+import dask
 import numpy as np
 import xarray as xr
 
@@ -13,6 +14,10 @@ from .__config__ import (LAT_STR, LON_STR, PHALF_STR, PFULL_STR, PLEVEL_STR,
 from .constants import r_e
 from .utils.times import datetime_or_default
 from . import utils
+
+# Need to set dask to use the serial scheduler in order to use multiprocess
+# to compute calculations in parallel
+dask.set_options(get=dask.async.get_sync)
 
 
 class Model(object):

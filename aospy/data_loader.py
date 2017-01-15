@@ -1,14 +1,16 @@
 """aospy DataLoader objects"""
 import os
 
+import dask
 import numpy as np
 import xarray as xr
 
 from . import internal_names
 from .utils import times, io
 
-_TIME_SHIFT_ATTRS = ['shift_{}'.format(intvl) for intvl in
-                     ['years', 'months', 'days', 'hours']]
+# Need to set dask to use the serial scheduler in order to use multiprocess
+# to compute calculations in parallel
+dask.set_options(get=dask.async.get_sync)
 
 
 class DataLoader(object):
