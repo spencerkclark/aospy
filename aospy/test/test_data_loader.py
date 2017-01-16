@@ -10,6 +10,7 @@ from aospy.data_loader import (DataLoader, DictDataLoader, GFDLDataLoader,
 from data.objects.examples import condensation_rain, convection_rain, precip
 from aospy import (LAT_STR, LON_STR, TIME_STR, TIME_BOUNDS_STR, NV_STR,
                    SFC_AREA_STR)
+from aospy.utils import io
 
 
 class AospyDataLoaderTestCase(unittest.TestCase):
@@ -195,6 +196,127 @@ class TestGFDLDataLoader(TestDataLoader):
         result = self.DataLoader._maybe_apply_time_shift(
             da.copy(), **self.generate_file_set_args)[TIME_STR]
         assert result.identical(da[TIME_STR])
+
+    def test_data_name_gfdl_annual(self):
+        # Test 'ts' and 'inst' data
+        for data_type in ['ts', 'inst']:
+            expected = 'atmos.2010.temp.nc'
+            result = io.data_name_gfdl('temp', 'atmos', data_type,
+                                       'annual', 2010, None, 2000, 1)
+            self.assertEqual(result, expected)
+
+            expected = 'atmos.2006-2011.temp.nc'
+            result = io.data_name_gfdl('temp', 'atmos', data_type,
+                                       'annual', 2010, None, 2000, 6)
+            self.assertEqual(result, expected)
+
+        # Test 'av' data
+        for intvl_type in ['annual', 'ann']:
+            expected = 'atmos.2010.ann.nc'
+            result = io.data_name_gfdl('temp', 'atmos', 'av',
+                                       intvl_type, 2010, None, 2000, 1)
+            self.assertEqual(result, expected)
+
+            expected = 'atmos.2006-2011.ann.nc'
+            result = io.data_name_gfdl('temp', 'atmos', 'av',
+                                       intvl_type, 2010, None, 2000, 6)
+            self.assertEqual(result, expected)
+
+        # Test 'av_ts' data
+        expected = 'atmos.2006-2011.01-12.nc'
+        result = io.data_name_gfdl('temp', 'atmos', 'av_ts',
+                                   'annual', 2010, None, 2000, 6)
+        self.assertEqual(result, expected)
+
+    def test_data_name_gfdl_monthly(self):
+        # Test 'ts' and 'inst' data
+        for data_type in ['ts', 'inst']:
+            expected = 'atmos.200601-201112.temp.nc'
+            result = io.data_name_gfdl('temp', 'atmos', data_type,
+                                       'monthly', 2010, 'jja', 2000, 6)
+            self.assertEqual(result, expected)
+
+        # Test 'av' data
+        for intvl_type in ['monthly', 'mon']:
+            expected = 'atmos.2010.jja.nc'
+            result = io.data_name_gfdl('temp', 'atmos', 'av',
+                                       intvl_type, 2010, 'jja', 2000, 1)
+            self.assertEqual(result, expected)
+
+            expected = 'atmos.2006-2011.jja.nc'
+            result = io.data_name_gfdl('temp', 'atmos', 'av',
+                                       intvl_type, 2010, 'jja', 2000, 6)
+            self.assertEqual(result, expected)
+
+        # Test 'av_ts' data
+        expected = 'atmos.2006-2011.01-12.nc'
+        result = io.data_name_gfdl('temp', 'atmos', 'av_ts',
+                                   'monthly', 2010, 'jja', 2000, 6)
+        self.assertEqual(result, expected)
+
+    def test_data_name_gfdl_daily(self):
+        # Test 'ts' and 'inst' data
+        for data_type in ['ts', 'inst']:
+            expected = 'atmos.20060101-20111231.temp.nc'
+            result = io.data_name_gfdl('temp', 'atmos', data_type,
+                                       'daily', 2010, None, 2000, 6)
+            self.assertEqual(result, expected)
+
+        # Test 'av' data; this should raise an error
+        with self.assertRaises(NameError):
+            io.data_name_gfdl('temp', 'atmos', 'av',
+                              'daily', 2010, None, 2000, 6)
+
+        # Test 'av_ts' data
+        expected = 'atmos.2006-2011.01-12.nc'
+        result = io.data_name_gfdl('temp', 'atmos', 'av_ts',
+                                   'daily', 2010, None, 2000, 6)
+        self.assertEqual(result, expected)
+
+    def test_data_name_gfdl_hr(self):
+        # Test 'ts' and 'inst' data
+        for data_type in ['ts', 'inst']:
+            expected = 'atmos.2006010100-2011123123.temp.nc'
+            result = io.data_name_gfdl('temp', 'atmos', data_type,
+                                       '3hr', 2010, None, 2000, 6)
+            self.assertEqual(result, expected)
+
+        # Test 'av' data; this should raise an error
+        with self.assertRaises(NameError):
+            io.data_name_gfdl('temp', 'atmos', 'av',
+                              '3hr', 2010, None, 2000, 6)
+
+        # Test 'av_ts' data
+        expected = 'atmos.2006-2011.01-12.nc'
+        result = io.data_name_gfdl('temp', 'atmos', 'av_ts',
+                                   '3hr', 2010, None, 2000, 6)
+        self.assertEqual(result, expected)
+
+    @unittest.expectedFailure
+    def test_data_name_gfdl_seasonal(self):
+        # Test 'ts' and 'inst' data; this should raise an error
+        for data_type in ['ts', 'inst']:
+            with self.assertRaises(NameError):
+                io.data_name_gfdl('temp', 'atmos', data_type,
+                                  'seasonal', 2010, None, 2000, 6)
+
+        # Test 'av' data
+        for intvl_type in ['seasonal', 'seas']:
+            expected = 'atmos.2010.JJA.nc'
+            result = io.data_name_gfdl('temp', 'atmos', 'av',
+                                       intvl_type, 2010, 'jja', 2000, 1)
+            self.assertEqual(result, expected)
+
+            expected = 'atmos.2006-2011.JJA.nc'
+            result = io.data_name_gfdl('temp', 'atmos', 'av',
+                                       intvl_type, 2010, 'jja', 2000, 6)
+            self.assertEqual(result, expected)
+
+        # Test 'av_ts' data
+        expected = 'atmos.2006-2011.01-12.nc'
+        result = io.data_name_gfdl('temp', 'atmos', 'av_ts',
+                                   'seasonal', 2010, None, 2000, 6)
+        self.assertEqual(result, expected)
 
 
 if __name__ == '__main__':
