@@ -111,6 +111,10 @@ class TestDataLoader(AospyDataLoaderTestCase):
 
         assert result.identical(expected)
 
+    def test_generate_file_set(self):
+        with self.assertRaises(NotImplementedError):
+            self.DataLoader._generate_file_set()
+
 
 class TestDictDataLoader(TestDataLoader):
     def setUp(self):
@@ -118,7 +122,7 @@ class TestDictDataLoader(TestDataLoader):
         file_map = {'monthly': ['a.nc']}
         self.DataLoader = DictDataLoader(file_map)
 
-    def test_generate_fileset(self):
+    def test_generate_file_set(self):
         result = self.DataLoader._generate_file_set(
             **self.generate_file_set_args)
         expected = ['a.nc']
@@ -136,7 +140,7 @@ class TestNestedDictDataLoader(TestDataLoader):
         file_map = {'monthly': {'condensation_rain': ['a.nc']}}
         self.DataLoader = NestedDictDataLoader(file_map)
 
-    def test_generate_fileset(self):
+    def test_generate_file_set(self):
         result = self.DataLoader._generate_file_set(
             **self.generate_file_set_args)
         expected = ['a.nc']
@@ -186,6 +190,16 @@ class TestGFDLDataLoader(TestDataLoader):
         expected[TIME_STR] = expected
         assert result.identical(expected)
 
+        # Test case where intvl_in doesn't end in 'hr'
+        self.generate_file_set_args['intvl_in'] = 'daily'
+        da = inst_ds[self.var_name]
+        result = self.DataLoader._maybe_apply_time_shift(
+            da.copy(), **self.generate_file_set_args)[TIME_STR]
+
+        expected = da[TIME_STR]
+        expected[TIME_STR] = expected
+        assert result.identical(expected)
+
     def test_maybe_apply_time_offset_ts(self):
         # Should provide no offset by default
         ds = xr.decode_cf(self.ds)
@@ -196,6 +210,10 @@ class TestGFDLDataLoader(TestDataLoader):
         result = self.DataLoader._maybe_apply_time_shift(
             da.copy(), **self.generate_file_set_args)[TIME_STR]
         assert result.identical(da[TIME_STR])
+
+    def test_generate_file_set(self):
+        with self.assertRaises(IOError):
+            self.DataLoader._generate_file_set(**self.generate_file_set_args)
 
     def test_input_data_paths_gfdl(self):
         expected = ['/test/atmos/ts/monthly/6yr/atmos.200601-201112.temp.nc']
