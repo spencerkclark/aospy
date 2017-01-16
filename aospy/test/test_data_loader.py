@@ -8,8 +8,8 @@ import numpy as np
 from aospy.data_loader import (DataLoader, DictDataLoader, GFDLDataLoader,
                                NestedDictDataLoader)
 from data.objects.examples import condensation_rain, convection_rain, precip
-from aospy import (LAT_STR, LON_STR, TIME_STR, TIME_BOUNDS_STR, NV_STR,
-                   SFC_AREA_STR)
+from aospy.internal_names import (LAT_STR, LON_STR, TIME_STR, TIME_BOUNDS_STR,
+                                  NV_STR, SFC_AREA_STR, ETA_STR)
 from aospy.utils import io
 
 
@@ -151,9 +151,9 @@ class TestNestedDictDataLoader(TestDataLoader):
 class TestGFDLDataLoader(TestDataLoader):
     def setUp(self):
         super(TestGFDLDataLoader, self).setUp()
-        self.DataLoader = GFDLDataLoader(data_direc='', data_dur=5,
+        self.DataLoader = GFDLDataLoader(data_direc='/test/', data_dur=6,
                                          data_start_date=datetime(2000, 1, 1),
-                                         data_end_date=datetime(2002, 12, 31))
+                                         data_end_date=datetime(2012, 12, 31))
 
     def test_overriding_constructor(self):
         new = GFDLDataLoader(self.DataLoader, data_direc='/a/')
@@ -162,8 +162,8 @@ class TestGFDLDataLoader(TestDataLoader):
         self.assertEqual(new.data_start_date, self.DataLoader.data_start_date)
         self.assertEqual(new.data_end_date, self.DataLoader.data_end_date)
 
-        new = GFDLDataLoader(self.DataLoader, data_dur=6)
-        self.assertEqual(new.data_dur, 6)
+        new = GFDLDataLoader(self.DataLoader, data_dur=8)
+        self.assertEqual(new.data_dur, 8)
 
         new = GFDLDataLoader(self.DataLoader,
                              data_start_date=datetime(2001, 1, 1))
@@ -196,6 +196,57 @@ class TestGFDLDataLoader(TestDataLoader):
         result = self.DataLoader._maybe_apply_time_shift(
             da.copy(), **self.generate_file_set_args)[TIME_STR]
         assert result.identical(da[TIME_STR])
+
+    def test_input_data_paths_gfdl(self):
+        expected = ['/test/atmos/ts/monthly/6yr/atmos.200601-201112.temp.nc']
+        result = self.DataLoader._input_data_paths_gfdl(
+            'temp', datetime(2010, 1, 1), datetime(2010, 12, 31), 'atmos',
+            'monthly', 'pressure', 'ts', None)
+        self.assertEqual(result, expected)
+
+        expected = ['/test/atmos_daily/ts/daily/6yr/'
+                    'atmos_daily.20060101-20111231.temp.nc']
+        result = self.DataLoader._input_data_paths_gfdl(
+            'temp', datetime(2010, 1, 1), datetime(2010, 12, 31), 'atmos',
+            'daily', 'pressure', 'ts', None)
+        self.assertEqual(result, expected)
+
+        expected = ['/test/atmos_level/ts/monthly/'
+                    '6yr/atmos_level.200601-201112.temp.nc']
+        result = self.DataLoader._input_data_paths_gfdl(
+            'temp', datetime(2010, 1, 1), datetime(2010, 12, 31), 'atmos',
+            'monthly', ETA_STR, 'ts', None)
+        self.assertEqual(result, expected)
+
+        expected = ['/test/atmos/ts/monthly/'
+                    '6yr/atmos.200601-201112.ps.nc']
+        result = self.DataLoader._input_data_paths_gfdl(
+            'ps', datetime(2010, 1, 1), datetime(2010, 12, 31), 'atmos',
+            'monthly', ETA_STR, 'ts', None)
+        self.assertEqual(result, expected)
+
+        expected = ['/test/atmos_inst/ts/monthly/'
+                    '6yr/atmos_inst.200601-201112.temp.nc']
+        result = self.DataLoader._input_data_paths_gfdl(
+            'temp', datetime(2010, 1, 1), datetime(2010, 12, 31), 'atmos',
+            'monthly', 'pressure', 'inst', None)
+        self.assertEqual(result, expected)
+
+        # 2017-01-16 SKC: this test fails; I'm not sure what the result
+        # should be
+        # expected = ['/test/atmos/daily/monthly_from_daily/'
+        #             '6yr/atmos.20060101-20111231.temp.nc']
+        # result = self.DataLoader._input_data_paths_gfdl(
+        #     'temp', datetime(2010, 1, 1), datetime(2010, 12, 31), 'atmos',
+        #     'monthly', 'pressure', 'monthly_from_daily', None)
+        # self.assertEqual(result, expected)
+
+        expected = ['/test/atmos/av/monthly_6yr/'
+                    'atmos.2006-2011.jja.nc']
+        result = self.DataLoader._input_data_paths_gfdl(
+            'temp', datetime(2010, 1, 1), datetime(2010, 12, 31), 'atmos',
+            'monthly', 'pressure', 'av', 'jja')
+        self.assertEqual(result, expected)
 
     def test_data_name_gfdl_annual(self):
         # Test 'ts' and 'inst' data
@@ -292,7 +343,7 @@ class TestGFDLDataLoader(TestDataLoader):
                                    '3hr', 2010, None, 2000, 6)
         self.assertEqual(result, expected)
 
-    @unittest.expectedFailure
+    @unittest.expectedFailure  # This aspect of this function is obselete
     def test_data_name_gfdl_seasonal(self):
         # Test 'ts' and 'inst' data; this should raise an error
         for data_type in ['ts', 'inst']:
