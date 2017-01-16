@@ -49,17 +49,8 @@ ps = Var(
 class CalcInterface(object):
     """Interface to Calc class."""
     def _set_data_attrs(self):
-        for attr in ('data_start_date',
-                     'data_end_date',
-                     'default_start_date',
+        for attr in ('default_start_date',
                      'default_end_date',
-                     'data_dur',
-                     'data_direc',
-                     'data_files',
-                     'data_dir_struc',
-                     'ens_mem_prefix',
-                     'ens_mem_ext',
-                     'idealized',
                      'data_loader'):
             attr_val = tuple([
                 utils.io.get_parent_attr(rn, attr, strict=False)
@@ -253,13 +244,6 @@ class Calc(object):
         self.path_tar_out = self._path_tar_out()
 
         self.data_out = {}
-
-    # TODO: Factor into DataLoader collection
-    def _get_input_data_paths_gfdl_repo(self, name, n=0):
-        """Get the names of netCDF files from a GFDL repo on /archive."""
-        return self.model[n].find_data_direc_repo(
-            run_name=self.run[n].name, var_name=name
-        )
 
     # 2017-01-13 [SKC]
     # The absolute time bounds of our selection are now handled in DataLoader.
@@ -519,8 +503,7 @@ class Calc(object):
 
     def _full_to_yearly_ts(self, arr, dt):
         """Average the full timeseries within each year."""
-        time_defined = self.def_time and not ('av' in self.dtype_in_time or
-                                              self.idealized[0])
+        time_defined = self.def_time and not ('av' in self.dtype_in_time)
         if time_defined:
             arr = self._avg_by_year(arr, dt)
         return arr

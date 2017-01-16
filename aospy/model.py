@@ -23,32 +23,25 @@ dask.set_options(get=dask.async.get_sync)
 class Model(object):
     """Parameters of local data associated with a single climate model."""
     def __init__(self, name='', description='', proj=None,
-                 grid_file_paths=None, data_direc=None,
-                 data_dir_struc=None, data_dur=None,
-                 data_start_date=None, data_end_date=None,
-                 default_start_date=None, default_end_date=None,
+                 grid_file_paths=None, default_start_date=None,
+                 default_end_date=None,
                  runs={}, default_runs={},
-                 load_grid_data=False, repo_version=None,
-                 repo_ens_mem='r1i1p1', data_loader=None):
+                 load_grid_data=False,
+                 data_loader=None):
         self.name = name
         self.description = description
         self.proj = proj
 
         grid_file_paths = [] if grid_file_paths is None else grid_file_paths
         self.grid_file_paths = grid_file_paths
-        self.repo_version = repo_version
-        self.repo_ens_mem = repo_ens_mem
 
-        self.data_direc = data_direc
-        self.data_dir_struc = data_dir_struc
-        self.data_dur = data_dur
-
-        self.data_start_date = datetime_or_default(data_start_date, None)
-        self.data_end_date = datetime_or_default(data_end_date, None)
-        self.default_start_date = datetime_or_default(default_start_date,
-                                                      self.data_start_date)
-        self.default_end_date = datetime_or_default(default_end_date,
-                                                    self.data_end_date)
+        try:
+            self.default_start_date = datetime_or_default(
+                default_start_date, data_loader.data_start_date)
+            self.default_end_date = datetime_or_default(
+                default_end_date, data_loader.data_end_date)
+        except AttributeError:
+            pass
 
         self.runs = utils.io.dict_name_keys(runs)
         [setattr(run, 'parent', self) for run in self.runs.values()]
@@ -69,61 +62,9 @@ class Model(object):
 
     __repr__ = __str__
 
-    def find_data_direc_repo(self, run_name='amip', var_name='ta',
-                             direc_sub='mon/atmos/Amon', ens_mem=None):
-        """Find the netCDF files used to populate grid attrs for a GFDL repo"""
-        if ens_mem is None:
-            ens_mem = self.repo_ens_mem
-        direc = os.path.join(self.data_direc, run_name, direc_sub,
-                             ens_mem)
-        if not os.path.isdir(direc):
-            direc = os.path.join(self.data_direc, run_name, direc_sub,
-                                 'r1i1p1')
-        direc_full = utils.io.get_data_direc_repo(direc, var_name,
-                                            version=self.repo_version)
-        files = glob.glob(os.path.join(direc_full, var_name + '_*.nc'))
-        # Some repos have all variables in the same directory.
-        if len(files) == 0:
-            files = glob.glob(os.path.join(direc_full, var_name,
-                                           var_name + '_*.nc'))
-        # Others have subdirectories for each variable.
-        if len(files) > 0:
-            files.sort()
-            return files
-        else:
-            raise IOError("Specified files don't exist for var name '%s' "
-                          "in directory '%s" % (var_name, direc_full))
-
-        return glob.glob(os.path.join(direc_full, var_name + '_*.nc'))
-
-    def _get_grid_files_repo(self):
-        """Get grid files of data in CMIP5 archive."""
-        direc_sub = 'fx/atmos/fx'
-        ens_mem = 'r0i0p0'
-        grid = []
-        for var in ('sftlf', 'areacella', 'orog'):
-            try:
-                path = self.find_data_direc_repo(var_name=var,
-                                                    direc_sub=direc_sub,
-                                                    ens_mem=ens_mem)
-            except IOError as e:
-                logging.debug(str(repr(e)))
-            else:
-                grid.append(path)
-        non_grid = [self.find_data_direc_repo()]
-        return grid + non_grid
-
     def _get_grid_files(self):
         """Get the files holding grid data for an aospy object."""
-        if getattr(self.proj, 'name', None) == 'cmip5':
-            try:
-                grid_file_paths = self._get_grid_files_repo()
-            except OSError:
-                grid_file_paths = []
-            if self.grid_file_paths:
-                grid_file_paths += self.grid_file_paths
-        else:
-            grid_file_paths = self.grid_file_paths
+        grid_file_paths = self.grid_file_paths
         datasets = []
         if isinstance(grid_file_paths, str):
             grid_file_paths = [grid_file_paths]
