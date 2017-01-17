@@ -332,8 +332,7 @@ def extract_date_range_and_months(time, start_date, end_date, months):
 
 
 def ensure_time_avg_has_cf_metadata(ds):
-    """Add time interval length, and absolute bounds coordinates for time
-    average data, using CF-required metadata.
+    """Add time interval length and bounds coordinates for time avg data.
 
     If the Dataset or DataArray contains time average data, enforce
     that there are coordinates that track the lower and upper bounds of
@@ -413,8 +412,9 @@ def _assert_has_data_for_time(da, start_date, end_date):
 
 
 def sel_time(da, start_date, end_date):
-    """Subset a DataArray or Dataset for a given date range.  Ensures
-    that data are present for full extent of requested range.
+    """Subset a DataArray or Dataset for a given date range.
+
+    Ensures that data are present for full extent of requested range.
 
     Parameters
     ----------
