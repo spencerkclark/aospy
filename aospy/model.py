@@ -11,8 +11,8 @@ from .utils.times import datetime_or_default
 from . import internal_names
 from . import utils
 
-# Need to set dask to use the serial scheduler in order to use multiprocess
-# to compute calculations in parallel
+# Dask must use its serial scheduler if computations are to be performed
+# in parallel using multiprocess
 dask.set_options(get=dask.async.get_sync)
 
 

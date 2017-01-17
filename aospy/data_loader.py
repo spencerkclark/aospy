@@ -8,8 +8,8 @@ import xarray as xr
 from . import internal_names
 from .utils import times, io
 
-# Need to set dask to use the serial scheduler in order to use multiprocess
-# to compute calculations in parallel
+# Dask must use its serial scheduler if computations are to be performed
+# in parallel using multiprocess
 dask.set_options(get=dask.async.get_sync)
 
 
@@ -174,19 +174,10 @@ class DataLoader(object):
                                            end_date=end_date, **DataAttrs)
         ds = _load_data_from_disk(file_set)
         ds = _prep_time_data(ds)
-        ds = set_grid_attrs_as_coords(ds)  # Tested
-        da = _sel_var(ds, var)  # Tested
-
-        # Apply correction before selecting time range.
-        # Note that time shifts are a property of a particular list of files
-        # NOT an entire DataLoader, so there either needs to be a way to
-        # specify those on a file list by file list basis. By default
-        # I think it is best to make the user be explicit about it in Calc.
-        # If one wants more automation, one can
-        # override _maybe_apply_time_shift
-        # in a new DataLoader and automate the offset based on
-        # DataAttrs like 'inst' for example
+        ds = set_grid_attrs_as_coords(ds)
+        da = _sel_var(ds, var)
         da = self._maybe_apply_time_shift(da, time_offset, **DataAttrs)
+
         start_date_xarray = times.numpy_datetime_range_workaround(start_date)
         end_date_xarray = start_date_xarray + (end_date - start_date)
         return times.sel_time(da, np.datetime64(start_date_xarray),
@@ -327,7 +318,6 @@ class GFDLDataLoader(DataLoader):
             for attr in attrs:
                 setattr(self, attr, getattr(template, attr))
 
-            # Override attributes that aren't none
             if data_direc is not None:
                 self.data_direc = data_direc
             else:

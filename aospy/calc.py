@@ -141,7 +141,6 @@ class CalcInterface(object):
         self.end_date_xarray = (self.start_date_xarray +
                                 (self.end_date - self.start_date))
 
-        # Add DataLoader logic
         self.time_offset = time_offset
         self.data_loader = self.data_loader[0]
         self.data_loader_attrs = dict(
@@ -235,11 +234,6 @@ class Calc(object):
 
         self.data_out = {}
 
-    # 2017-01-13 [SKC]
-    # The absolute time bounds of our selection are now handled in DataLoader.
-    # We still need a function to select times within that subset, however.
-    # Leaving this as is for now, since it will still work, but is duplicating
-    # some logic.
     def _to_desired_dates(self, arr):
         """Restrict the xarray DataArray or Dataset to the desired months."""
         times = utils.times.extract_date_range_and_months(
@@ -363,13 +357,6 @@ class Calc(object):
             data = self.data_loader.load_variable(var, start_date, end_date,
                                                   self.time_offset,
                                                   **self.data_loader_attrs)
-            # 2017-01-13 [SKC]: Load variable returns a DataArray (for now)
-            # therefore to add grid attributes from the Model object and to
-            # add pressure coordinates, we need to convert things to a
-            # Dataset.  Ultimately we want a DataArray, so we select
-            # the relevant variable based on its name.  load_variable makes
-            # sure this is the official internal name of the variable
-            # ahead of time.
             name = data.name
             data = self._add_grid_attributes(
                 data.to_dataset(name=data.name), 0)

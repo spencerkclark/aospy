@@ -67,10 +67,8 @@ class TestDataLoader(AospyDataLoaderTestCase):
         sfc_area = ds[self.var_name].isel(**{TIME_STR: 0}).drop(TIME_STR)
         ds[SFC_AREA_STR] = sfc_area
 
-        # Assert that SFC_AREA_STR is not initially carried by self.var_name
         assert SFC_AREA_STR not in ds[self.var_name]
 
-        # Apply method, then assert that SFC_AREA_STR is carried
         ds = set_grid_attrs_as_coords(ds)
         assert SFC_AREA_STR in ds[self.var_name]
 
@@ -96,13 +94,9 @@ class TestDataLoader(AospyDataLoaderTestCase):
         ds = xr.decode_cf(self.ds)
         da = ds[self.var_name]
 
-        # If you don't pass a time_offset or non-null DataVars,
-        # nothing should happen
         result = self.DataLoader._maybe_apply_time_shift(da.copy())[TIME_STR]
         assert result.identical(da[TIME_STR])
 
-        # If you do pass an offset, it should be applied
-        # Why does da get modified in place?
         offset = self.DataLoader._maybe_apply_time_shift(da.copy(),
                                                          {'days': 1})
         result = offset[TIME_STR]
@@ -179,7 +173,6 @@ class TestGFDLDataLoader(TestDataLoader):
         self.assertEqual(new.data_end_date, datetime(2003, 12, 31))
 
     def test_maybe_apply_time_offset_inst(self):
-        # Should offset by -3 hours
         inst_ds = xr.decode_cf(self.inst_ds)
         self.generate_file_set_args['dtype_in_time'] = 'inst'
         self.generate_file_set_args['intvl_in'] = '3hr'
@@ -191,7 +184,6 @@ class TestGFDLDataLoader(TestDataLoader):
         expected[TIME_STR] = expected
         assert result.identical(expected)
 
-        # Test case where intvl_in doesn't end in 'hr'
         self.generate_file_set_args['intvl_in'] = 'daily'
         da = inst_ds[self.var_name]
         result = self.DataLoader._maybe_apply_time_shift(
@@ -202,12 +194,9 @@ class TestGFDLDataLoader(TestDataLoader):
         assert result.identical(expected)
 
     def test_maybe_apply_time_offset_ts(self):
-        # Should provide no offset by default
         ds = xr.decode_cf(self.ds)
         da = ds[self.var_name]
 
-        # If you don't pass a time_offset or non-null DataVars,
-        # nothing should happen
         result = self.DataLoader._maybe_apply_time_shift(
             da.copy(), **self.generate_file_set_args)[TIME_STR]
         assert result.identical(da[TIME_STR])
@@ -268,7 +257,6 @@ class TestGFDLDataLoader(TestDataLoader):
         self.assertEqual(result, expected)
 
     def test_data_name_gfdl_annual(self):
-        # Test 'ts' and 'inst' data
         for data_type in ['ts', 'inst']:
             expected = 'atmos.2010.temp.nc'
             result = io.data_name_gfdl('temp', 'atmos', data_type,
@@ -280,7 +268,6 @@ class TestGFDLDataLoader(TestDataLoader):
                                        'annual', 2010, None, 2000, 6)
             self.assertEqual(result, expected)
 
-        # Test 'av' data
         for intvl_type in ['annual', 'ann']:
             expected = 'atmos.2010.ann.nc'
             result = io.data_name_gfdl('temp', 'atmos', 'av',
@@ -292,21 +279,18 @@ class TestGFDLDataLoader(TestDataLoader):
                                        intvl_type, 2010, None, 2000, 6)
             self.assertEqual(result, expected)
 
-        # Test 'av_ts' data
         expected = 'atmos.2006-2011.01-12.nc'
         result = io.data_name_gfdl('temp', 'atmos', 'av_ts',
                                    'annual', 2010, None, 2000, 6)
         self.assertEqual(result, expected)
 
     def test_data_name_gfdl_monthly(self):
-        # Test 'ts' and 'inst' data
         for data_type in ['ts', 'inst']:
             expected = 'atmos.200601-201112.temp.nc'
             result = io.data_name_gfdl('temp', 'atmos', data_type,
                                        'monthly', 2010, 'jja', 2000, 6)
             self.assertEqual(result, expected)
 
-        # Test 'av' data
         for intvl_type in ['monthly', 'mon']:
             expected = 'atmos.2010.jja.nc'
             result = io.data_name_gfdl('temp', 'atmos', 'av',
@@ -318,45 +302,38 @@ class TestGFDLDataLoader(TestDataLoader):
                                        intvl_type, 2010, 'jja', 2000, 6)
             self.assertEqual(result, expected)
 
-        # Test 'av_ts' data
         expected = 'atmos.2006-2011.01-12.nc'
         result = io.data_name_gfdl('temp', 'atmos', 'av_ts',
                                    'monthly', 2010, 'jja', 2000, 6)
         self.assertEqual(result, expected)
 
     def test_data_name_gfdl_daily(self):
-        # Test 'ts' and 'inst' data
         for data_type in ['ts', 'inst']:
             expected = 'atmos.20060101-20111231.temp.nc'
             result = io.data_name_gfdl('temp', 'atmos', data_type,
                                        'daily', 2010, None, 2000, 6)
             self.assertEqual(result, expected)
 
-        # Test 'av' data; this should raise an error
         with self.assertRaises(NameError):
             io.data_name_gfdl('temp', 'atmos', 'av',
                               'daily', 2010, None, 2000, 6)
 
-        # Test 'av_ts' data
         expected = 'atmos.2006-2011.01-12.nc'
         result = io.data_name_gfdl('temp', 'atmos', 'av_ts',
                                    'daily', 2010, None, 2000, 6)
         self.assertEqual(result, expected)
 
     def test_data_name_gfdl_hr(self):
-        # Test 'ts' and 'inst' data
         for data_type in ['ts', 'inst']:
             expected = 'atmos.2006010100-2011123123.temp.nc'
             result = io.data_name_gfdl('temp', 'atmos', data_type,
                                        '3hr', 2010, None, 2000, 6)
             self.assertEqual(result, expected)
 
-        # Test 'av' data; this should raise an error
         with self.assertRaises(NameError):
             io.data_name_gfdl('temp', 'atmos', 'av',
                               '3hr', 2010, None, 2000, 6)
 
-        # Test 'av_ts' data
         expected = 'atmos.2006-2011.01-12.nc'
         result = io.data_name_gfdl('temp', 'atmos', 'av_ts',
                                    '3hr', 2010, None, 2000, 6)
@@ -364,13 +341,11 @@ class TestGFDLDataLoader(TestDataLoader):
 
     @unittest.expectedFailure  # This aspect of this function is obselete
     def test_data_name_gfdl_seasonal(self):
-        # Test 'ts' and 'inst' data; this should raise an error
         for data_type in ['ts', 'inst']:
             with self.assertRaises(NameError):
                 io.data_name_gfdl('temp', 'atmos', data_type,
                                   'seasonal', 2010, None, 2000, 6)
 
-        # Test 'av' data
         for intvl_type in ['seasonal', 'seas']:
             expected = 'atmos.2010.JJA.nc'
             result = io.data_name_gfdl('temp', 'atmos', 'av',
@@ -382,7 +357,6 @@ class TestGFDLDataLoader(TestDataLoader):
                                        intvl_type, 2010, 'jja', 2000, 6)
             self.assertEqual(result, expected)
 
-        # Test 'av_ts' data
         expected = 'atmos.2006-2011.01-12.nc'
         result = io.data_name_gfdl('temp', 'atmos', 'av_ts',
                                    'seasonal', 2010, None, 2000, 6)

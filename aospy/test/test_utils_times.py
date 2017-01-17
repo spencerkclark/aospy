@@ -176,7 +176,6 @@ class TestUtilsTimes(UtilsTimesTestCase):
         result_march = _month_conditional(test, [3])
         np.testing.assert_array_equal(result_march, np.array([False, False]))
 
-        # Test sub-monthly intervals
         test = pd.date_range('1999-12-31 18:00:00', '2000-01-01 00:00:00',
                              freq='6H')
         test = xr.DataArray(test, dims=[TIME_STR])
@@ -184,7 +183,6 @@ class TestUtilsTimes(UtilsTimesTestCase):
         np.testing.assert_array_equal(result_jan,
                                       np.array([False, True]))
 
-        # Test wrap-around year
         result_jd = _month_conditional(test, [1, 12])
         np.testing.assert_array_equal(result_jd,
                                       np.array([True, True]))

@@ -16,14 +16,10 @@ class AospyIOTestCase(unittest.TestCase):
 
 class TestIO(AospyIOTestCase):
     def test_dmget(self):
-        # For now this just test to make sure that dmget
-        # doesn't raise an exception if the command does not exist
-        # on the system.
         io.dmget(['/home/Spencer.Clark/archive/imr_skc/control/'
                   'gfdl.ncrc3-default-repro/1/history/'
                   '00010101.atmos_month.nc'])
 
-        # Test with a pure string argument
         io.dmget('/home/Spencer.Clark/archive/imr_skc/control/'
                  'gfdl.ncrc3-default-repro/1/history/'
                  '00010101.atmos_month.nc')
