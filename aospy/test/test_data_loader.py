@@ -95,11 +95,12 @@ class TestDataLoader(AospyDataLoaderTestCase):
         ds = xr.decode_cf(self.ds)
         da = ds[self.var_name]
 
-        result = self.DataLoader._maybe_apply_time_shift(da.copy())[TIME_STR]
+        result = self.DataLoader._maybe_apply_time_shift(
+            da.copy(), **self.generate_file_set_args)[TIME_STR]
         assert result.identical(da[TIME_STR])
 
-        offset = self.DataLoader._maybe_apply_time_shift(da.copy(),
-                                                         {'days': 1})
+        offset = self.DataLoader._maybe_apply_time_shift(
+            da.copy(), {'days': 1}, **self.generate_file_set_args)
         result = offset[TIME_STR]
 
         expected = da[TIME_STR] + np.timedelta64(1, 'D')

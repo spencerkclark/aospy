@@ -198,12 +198,15 @@ class DataLoader(object):
 
 
 class DictDataLoader(DataLoader):
-    """A data loader that corresponds with a dictionary mapping lists of files
-    to intvl_in tags.
+    """A DataLoader that uses a dictionary mapping lists of files to string
+    tags.
 
     This is the simplest DataLoader; it is useful for instance if one is
     dealing with raw model history files, which tend to group all variables
-    of a single output interval into single filesets.
+    of a single output interval into single filesets. The
+    intvl_in parameter is a string description of the time frequency of the
+    data one is referencing (e.g. 'monthly', 'daily', '3-hourly').  In
+    principle, one can give it any string value.
 
     Parameters
     ----------
@@ -235,11 +238,16 @@ class DictDataLoader(DataLoader):
 
 
 class NestedDictDataLoader(DataLoader):
-    """A data loader that locates files based on a nested dictionary mapping of
+    """DataLoader that uses a nested dictionary mapping
     intvl_in to dictionaries mapping variable names to lists of files.
 
     This is the most flexible existing type of DataLoader; it allows for the
-    specification of different sets of files for different variables.
+    specification of different sets of files for different variables.  The
+    intvl_in parameter is a string description of the time frequency of the
+    data one is referencing (e.g. 'monthly', 'daily', '3-hourly').  In
+    principle, one can give it any string value.  The variable name
+    can be any variable name in your aospy object library (including
+    alternative names).
 
     Parameters
     ----------
@@ -274,12 +282,11 @@ class NestedDictDataLoader(DataLoader):
 
 
 class GFDLDataLoader(DataLoader):
-    """A data loader that locates files based on GFDL post-processing naming
-    conventions.
+    """DataLoader for NOAA GFDL model output
 
     This is an example of a domain-specific custom DataLoader, designed
-    specifically for finding files output by GFDL's model history file
-    post-processing tools.
+    specifically for finding files output by the Geophysical Fluid Dynamics
+    Laboratory's model history file post-processing tools.
 
     Parameters
     ----------
@@ -340,24 +347,20 @@ class GFDLDataLoader(DataLoader):
 
     @staticmethod
     def _maybe_apply_time_shift(da, time_offset=None, **DataAttrs):
-        """Special logic to aid in automation of time offsetting for GFDL
-        post-processed data"""
+        """Correct off-by-one error in GFDL instantaneous model data."""
         if time_offset is not None:
             time = times.apply_time_offset(da[internal_names.TIME_STR],
                                            **time_offset)
             da[internal_names.TIME_STR] = time
         else:
-            try:
-                if DataAttrs['dtype_in_time'] == 'inst':
-                    if DataAttrs['intvl_in'].endswith('hr'):
-                        offset = -1 * int(DataAttrs['intvl_in'][0])
-                    else:
-                        offset = 0
-                    time = times.apply_time_offset(da[internal_names.TIME_STR],
-                                                   hours=offset)
-                    da[internal_names.TIME_STR] = time
-            except KeyError:
-                pass
+            if DataAttrs['dtype_in_time'] == 'inst':
+                if DataAttrs['intvl_in'].endswith('hr'):
+                    offset = -1 * int(DataAttrs['intvl_in'][0])
+                else:
+                    offset = 0
+                time = times.apply_time_offset(da[internal_names.TIME_STR],
+                                               hours=offset)
+                da[internal_names.TIME_STR] = time
         return da
 
     def _generate_file_set(self, var=None, start_date=None, end_date=None,
