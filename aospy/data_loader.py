@@ -135,10 +135,21 @@ def _load_data_from_disk(file_set):
     -------
     Dataset
     """
-    io.dmget(file_set)
+    apply_preload_user_commands(file_set)
     return xr.open_mfdataset(file_set, preprocess=rename_grid_attrs,
                              concat_dim=internal_names.TIME_STR,
                              decode_cf=False)
+
+
+def apply_preload_user_commands(file_set, cmd=io.dmget):
+    """Call desired functions on file list before loading.
+
+    For example, on the NOAA Geophysical Fluid Dynamics Laboratory
+    computational cluster, data that is saved on their tape archive
+    must be accessed via a `dmget` (or `hsmget`) command before being used.
+    """
+    if cmd is not None:
+        cmd(file_set)
 
 
 class DataLoader(object):
