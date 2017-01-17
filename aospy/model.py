@@ -35,13 +35,10 @@ class Model(object):
         grid_file_paths = [] if grid_file_paths is None else grid_file_paths
         self.grid_file_paths = grid_file_paths
 
-        try:
-            self.default_start_date = datetime_or_default(
-                default_start_date, data_loader.data_start_date)
-            self.default_end_date = datetime_or_default(
-                default_end_date, data_loader.data_end_date)
-        except AttributeError:
-            pass
+        self.default_start_date = datetime_or_default(
+            default_start_date, getattr(data_loader, 'data_start_date', None))
+        self.default_end_date = datetime_or_default(
+            default_end_date, getattr(data_loader, 'data_end_date', None))
 
         self.runs = utils.io.dict_name_keys(runs)
         [setattr(run, 'parent', self) for run in self.runs.values()]

@@ -13,16 +13,10 @@ class Run(object):
         self.description = '' if description is None else description
         self.proj = proj
 
-        try:
-            self.default_start_date = datetime_or_default(
-                default_start_date, data_loader.data_start_date)
-            self.default_end_date = datetime_or_default(
-                default_end_date, data_loader.data_end_date)
-        except AttributeError:
-            self.default_start_date = datetime_or_default(default_start_date,
-                                                          default_start_date)
-            self.default_end_date = datetime_or_default(default_end_date,
-                                                        default_end_date)
+        self.default_start_date = datetime_or_default(
+            default_start_date, getattr(data_loader, 'data_start_date', None))
+        self.default_end_date = datetime_or_default(
+            default_end_date, getattr(data_loader, 'data_end_date', None))
 
         self.tags = [] if tags is None else tags
 
