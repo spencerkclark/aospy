@@ -7,8 +7,8 @@ import numpy as np
 import xarray as xr
 
 from .constants import r_e
-from .utils.times import datetime_or_default
 from . import internal_names
+from .utils.times import datetime_or_default
 from . import utils
 
 # Dask must use its serial scheduler if computations are to be performed

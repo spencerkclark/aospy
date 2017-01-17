@@ -5,9 +5,14 @@ import sys
 import unittest
 
 import numpy as np
-import xarray as xr
 import pandas as pd
+import xarray as xr
 
+from aospy.data_loader import set_grid_attrs_as_coords
+from aospy.internal_names import (
+    TIME_STR, TIME_BOUNDS_STR, NV_STR, AVERAGE_DT_STR, AVG_START_DATE_STR,
+    AVG_END_DATE_STR
+)
 from aospy.utils.times import (
     apply_time_offset,
     monthly_mean_ts,
@@ -23,11 +28,6 @@ from aospy.utils.times import (
     set_average_dt_metadata,
     _assert_has_data_for_time,
 )
-from aospy.internal_names import (
-    TIME_STR, TIME_BOUNDS_STR, NV_STR, AVERAGE_DT_STR, AVG_START_DATE_STR,
-    AVG_END_DATE_STR
-)
-from aospy.data_loader import set_grid_attrs_as_coords
 
 
 _INVALID_DATE_OBJECTS = [1985, True, None, '2016-04-07', np.datetime64(1, 'Y')]
@@ -56,7 +56,7 @@ class TestUtilsTimes(UtilsTimesTestCase):
             assert actual.identical(desired)
 
     def test_monthly_mean_ts_single_month(self):
-        time = pd.date_range('2000-01-01', freq='6H', periods=4*31)
+        time = pd.date_range('2000-01-01', freq='6H', periods=4 * 31)
         arr = xr.DataArray(np.random.random(time.shape), dims=[TIME_STR],
                            coords={TIME_STR: time})
         desired = arr.mean(TIME_STR)
@@ -64,7 +64,7 @@ class TestUtilsTimes(UtilsTimesTestCase):
         np.testing.assert_allclose(actual, desired)
 
     def test_monthly_mean_ts_submonthly(self):
-        time = pd.date_range('2000-01-01', freq='1D', periods=365*3)
+        time = pd.date_range('2000-01-01', freq='1D', periods=365 * 3)
         arr = xr.DataArray(np.random.random(time.shape), dims=[TIME_STR],
                            coords={TIME_STR: time})
         desired = arr.resample('1M', TIME_STR, how='mean')
@@ -100,8 +100,8 @@ class TestUtilsTimes(UtilsTimesTestCase):
             dims=arr_submonthly.dims, coords={TIME_STR: times_means}
         )
         actual = monthly_mean_at_each_ind(arr_means, arr_submonthly)
-        desired_values = np.stack([arr_means.values[0]]*len_other_dim +
-                                  [arr_means.values[1]]*len_other_dim,
+        desired_values = np.stack([arr_means.values[0]] * len_other_dim +
+                                  [arr_means.values[1]] * len_other_dim,
                                   axis=0)
         desired = xr.DataArray(desired_values, dims=arr_submonthly.dims,
                                coords=arr_submonthly.coords)
@@ -196,7 +196,7 @@ class TestUtilsTimes(UtilsTimesTestCase):
         start = datetime.datetime(1, 2, 2)
         end = datetime.datetime(2, 6, 5)
         # using feb and march
-        months_bool = [True]*2 + [False]*10 + [True]*2 + [False]*3
+        months_bool = [True] * 2 + [False] * 10 + [True] * 2 + [False] * 3
         actual = create_monthly_time_array(start, end, 'fm')
         all_months = pd.date_range(
             start=datetime.datetime(pd.Timestamp.min.year + 1, start.month,
@@ -233,7 +233,6 @@ class TestUtilsTimes(UtilsTimesTestCase):
         actual = extract_date_range_and_months(time, start_date, end_date,
                                                months)
         assert actual.identical(desired)
-
 
     def test_set_average_dt_metadata(self):
         time_bounds = np.array([[0, 31], [31, 59], [59, 90]])

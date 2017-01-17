@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 """Test suite for aospy.data_loader module."""
-import unittest
 from datetime import datetime
-import xarray as xr
-import numpy as np
+import unittest
 
-from aospy.data_loader import (
-    DataLoader, DictDataLoader, GFDLDataLoader, NestedDictDataLoader,
-    rename_grid_attrs, set_grid_attrs_as_coords, _sel_var, _prep_time_data)
-from data.objects.examples import condensation_rain, convection_rain, precip
+import numpy as np
+import xarray as xr
+
+from aospy.data_loader import (DataLoader, DictDataLoader, GFDLDataLoader,
+                               NestedDictDataLoader, rename_grid_attrs,
+                               set_grid_attrs_as_coords, _sel_var)
 from aospy.internal_names import (LAT_STR, LON_STR, TIME_STR, TIME_BOUNDS_STR,
                                   NV_STR, SFC_AREA_STR, ETA_STR)
 from aospy.utils import io
+from data.objects.examples import condensation_rain, convection_rain, precip
 
 
 class AospyDataLoaderTestCase(unittest.TestCase):

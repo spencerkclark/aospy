@@ -10,8 +10,8 @@ from time import ctime
 import numpy as np
 import xarray as xr
 
-from . import internal_names
 from .constants import Constant, grav
+from . import internal_names
 from . import utils
 from .var import Var
 
