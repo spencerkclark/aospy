@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from ..__config__ import TIME_STR
 from .. import internal_names
 
 
@@ -71,7 +70,9 @@ def monthly_mean_ts(arr):
     --------
     monthly_mean_at_each_ind : Copy monthly means to each submonthly time
     """
-    return arr.resample('1M', TIME_STR, how='mean').dropna(TIME_STR)
+    return arr.resample(
+        '1M', internal_names.TIME_STR,
+        how='mean').dropna(internal_names.TIME_STR)
 
 
 def monthly_mean_at_each_ind(monthly_means, sub_monthly_timeseries):
@@ -93,9 +94,9 @@ def monthly_mean_at_each_ind(monthly_means, sub_monthly_timeseries):
     --------
     monthly_mean_ts : Create timeseries of monthly mean values
     """
-    time = monthly_means[TIME_STR]
-    start = time.indexes[TIME_STR][0].replace(day=1, hour=0)
-    end = time.indexes[TIME_STR][-1]
+    time = monthly_means[internal_names.TIME_STR]
+    start = time.indexes[internal_names.TIME_STR][0].replace(day=1, hour=0)
+    end = time.indexes[internal_names.TIME_STR][-1]
     new_indices = pd.DatetimeIndex(start=start, end=end, freq='MS')
     arr_new = monthly_means.reindex(time=new_indices, method='backfill')
     return arr_new.reindex_like(sub_monthly_timeseries, method='pad')
@@ -143,7 +144,7 @@ def datetime_or_default(date, default):
 
 
 def numpy_datetime_range_workaround(date):
-    """"Reset a date to earliest allowable year if outside of valid range.
+    """Reset a date to earliest allowable year if outside of valid range.
 
     Hack to address np.datetime64, and therefore pandas and xarray, not
     supporting dates outside the range 1677-09-21 and 2262-04-11 due to
@@ -273,7 +274,7 @@ def _month_conditional(time, months):
         months_array = months
     cond = False
     for month in months_array:
-        cond |= (time['{}.month'.format(TIME_STR)] == month)
+        cond |= (time['{}.month'.format(internal_names.TIME_STR)] == month)
     return cond
 
 
@@ -303,7 +304,7 @@ def create_monthly_time_array(start_date, end_date, months):
     end_compliant = start_compliant + (end_date - start_date)
     all_months = pd.date_range(start=start_compliant, end=end_compliant,
                                freq='M')
-    time = xr.DataArray(all_months, dims=[TIME_STR])
+    time = xr.DataArray(all_months, dims=[internal_names.TIME_STR])
     return time[_month_conditional(time, months)]
 
 
@@ -325,8 +326,8 @@ def extract_date_range_and_months(time, start_date, end_date, months):
     xarray.DataArray of the desired times
     """
     inds = _month_conditional(time, months)
-    inds &= (time[TIME_STR] <= np.datetime64(end_date))
-    inds &= (time[TIME_STR] >= np.datetime64(start_date))
+    inds &= (time[internal_names.TIME_STR] <= np.datetime64(end_date))
+    inds &= (time[internal_names.TIME_STR] >= np.datetime64(start_date))
     return time.sel(time=inds)
 
 

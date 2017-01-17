@@ -1,18 +1,14 @@
 """model.py: Model class of aospy for storing attributes of a GCM."""
 from __future__ import print_function
-import glob
 import logging
-import os
 
 import dask
 import numpy as np
 import xarray as xr
 
-from .__config__ import (LAT_STR, LON_STR, PHALF_STR, PFULL_STR, PLEVEL_STR,
-                         LAT_BOUNDS_STR, LON_BOUNDS_STR, TIME_BOUNDS_STR,
-                         BOUNDS_STR)
 from .constants import r_e
 from .utils.times import datetime_or_default
+from . import internal_names
 from . import utils
 
 # Need to set dask to use the serial scheduler in order to use multiprocess
@@ -91,18 +87,8 @@ class Model(object):
         Renames all coordinates within a Dataset or DataArray so that they
         match the internal names.
         """
-        primary_attrs = {
-            LAT_STR:         ('lat', 'latitude', 'LATITUDE', 'y', 'yto'),
-            LAT_BOUNDS_STR:  ('latb', 'lat_bnds', 'lat_bounds'),
-            LON_STR:         ('lon', 'longitude', 'LONGITUDE', 'x', 'xto'),
-            LON_BOUNDS_STR:  ('lonb', 'lon_bnds', 'lon_bounds'),
-            PLEVEL_STR:      ('level', 'lev', 'plev'),
-            PHALF_STR:       ('phalf',),
-            PFULL_STR:       ('pfull',),
-            TIME_BOUNDS_STR: ('time_bounds', 'time_bnds'),
-            }
         if isinstance(ds, (xr.DataArray, xr.Dataset)):
-            for name_int, names_ext in primary_attrs.items():
+            for name_int, names_ext in internal_names.GRID_ATTRS.items():
                 # Check if coord is in dataset already.
                 ds_coord_name = set(names_ext).intersection(set(ds.coords))
                 if ds_coord_name:
@@ -121,34 +107,8 @@ class Model(object):
         """
         Set multiple attrs from grid file given their names in the grid file.
         """
-        grid_attrs = {
-            LAT_STR:         ('lat', 'latitude', 'LATITUDE', 'y', 'yto'),
-            LAT_BOUNDS_STR:    ('latb', 'lat_bnds', 'lat_bounds'),
-            LON_STR:         ('lon', 'longitude', 'LONGITUDE', 'x', 'xto'),
-            LON_BOUNDS_STR:    ('lonb', 'lon_bnds', 'lon_bounds'),
-            PLEVEL_STR:      ('level', 'lev', 'plev'),
-            # 'time':        ('time', 'TIME'),
-            # 'time_st':     ('average_T1',),
-            # 'time_end':    ('average_T2',),
-            'time_dur':    ('average_DT',),
-            'time_bounds': ('time_bounds', 'time_bnds'),
-            # 'year':        ('yr', 'year'),
-            # 'month':       ('mo', 'month'),
-            # 'day':         ('dy', 'day'),
-            'sfc_area':    ('area', 'sfc_area', 'areacella'),
-            'zsurf':       ('zsurf', 'orog'),
-            'land_mask':   ('land_mask', 'sftlf'),
-            'pk':          ('pk',),
-            'bk':          ('bk',),
-            PHALF_STR:     ('phalf',),
-            PFULL_STR:     ('pfull',),
-            BOUNDS_STR:    ('bnds', 'bounds'),
-            # 'nrecords':    ('nrecords',),
-            # 'idim':        ('idim',),
-            # 'fill_value':  ('fill_value')
-        }
         grid_objs = self._get_grid_files()
-        for name_int, names_ext in grid_attrs.items():
+        for name_int, names_ext in internal_names.GRID_ATTRS.items():
             for name in names_ext:
                 grid_attr = self._get_grid_attr(grid_objs, name)
                 if grid_attr is not None:
@@ -207,9 +167,11 @@ class Model(object):
         """Calculate surface area of each grid cell in a lon-lat grid."""
         # Compute the bounds if not given.
         if lon_bounds is None:
-            lon_bounds = cls.bounds_from_array(lon, LON_STR, LON_BOUNDS_STR)
+            lon_bounds = cls.bounds_from_array(
+                lon, internal_names.LON_STR, internal_names.LON_BOUNDS_STR)
         if lat_bounds is None:
-            lat_bounds = cls.bounds_from_array(lat, LAT_STR, LAT_BOUNDS_STR)
+            lat_bounds = cls.bounds_from_array(
+                lat, internal_names.LAT_STR, internal_names.LAT_BOUNDS_STR)
         # Compute the surface area.
         dlon = cls.diff_bounds(utils.vertcoord.to_radians(lon_bounds,
                                                           is_delta=True), lon)
@@ -219,14 +181,15 @@ class Model(object):
         sfc_area = dlon*dsinlat*(r_e**2)
         # Rename the coordinates such that they match the actual lat / lon.
         try:
-            sfc_area = sfc_area.rename({LAT_BOUNDS_STR: LAT_STR,
-                                        LON_BOUNDS_STR: LON_STR})
+            sfc_area = sfc_area.rename(
+                {internal_names.LAT_BOUNDS_STR: internal_names.LAT_STR,
+                 internal_names.LON_BOUNDS_STR: internal_names.LON_STR})
         except ValueError:
             pass
         # Clean up: correct names and dimension order.
         sfc_area = sfc_area.rename('sfc_area')
-        sfc_area[LAT_STR] = lat
-        sfc_area[LON_STR] = lon
+        sfc_area[internal_names.LAT_STR] = lat
+        sfc_area[internal_names.LON_STR] = lon
         return sfc_area.transpose()
 
     def set_grid_data(self):

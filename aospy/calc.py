@@ -8,12 +8,8 @@ import tarfile
 from time import ctime
 
 import numpy as np
-import pandas as pd
 import xarray as xr
 
-from .__config__ import (LAT_STR, LON_STR, LAT_BOUNDS_STR, LON_BOUNDS_STR,
-                         PHALF_STR, PFULL_STR, PLEVEL_STR, TIME_STR, YEAR_STR,
-                         ETA_STR, BOUNDS_STR)
 from . import internal_names
 from .constants import Constant, grav
 from . import utils
@@ -159,20 +155,14 @@ class Calc(object):
 
     ARR_XARRAY_NAME = 'aospy_result'
 
-    _grid_attrs = OrderedDict([
-        (LAT_STR,        ('lat', 'latitude', 'LATITUDE', 'y', 'yto')),
-        (LAT_BOUNDS_STR, ('latb', 'lat_bnds', 'lat_bounds')),
-        (LON_STR,        ('lon', 'longitude', 'LONGITUDE', 'x', 'xto')),
-        (LON_BOUNDS_STR, ('lonb', 'lon_bnds', 'lon_bounds')),
-        ('zsurf',        ('zsurf',)),
-        ('sfc_area',     ('area', 'sfc_area')),
-        ('land_mask',    ('land_mask',)),
-        ('pk',           ('pk',)),
-        ('bk',           ('bk',)),
-        (PHALF_STR,      ('phalf',)),
-        (PFULL_STR,      ('pfull',)),
-        (PLEVEL_STR,     ('level', 'lev', 'plev')),
-    ])
+    _grid_coords = [internal_names.LAT_STR, internal_names.LAT_BOUNDS_STR,
+                    internal_names.LON_STR, internal_names.LON_BOUNDS_STR,
+                    internal_names.ZSURF_STR, internal_names.SFC_AREA_STR,
+                    internal_names.LAND_MASK_STR, internal_names.PK_STR,
+                    internal_names.BK_STR, internal_names.PHALF_STR,
+                    internal_names.PFULL_STR, internal_names.PLEVEL_STR]
+    _grid_attrs = OrderedDict([(key, internal_names.GRID_ATTRS[key])
+                               for key in _grid_coords])
 
     def __str__(self):
         """String representation of the object."""
@@ -253,8 +243,8 @@ class Calc(object):
     def _to_desired_dates(self, arr):
         """Restrict the xarray DataArray or Dataset to the desired months."""
         times = utils.times.extract_date_range_and_months(
-            arr[TIME_STR], self.start_date_xarray, self.end_date_xarray,
-            self.months
+            arr[internal_names.TIME_STR], self.start_date_xarray,
+            self.end_date_xarray, self.months
         )
         return arr.sel(time=times)
 
@@ -289,7 +279,8 @@ class Calc(object):
                 if model_attr is not None:
                     ds[name_int] = model_attr
                     ds = ds.set_coords(name_int)
-            if self.dtype_in_vert == 'pressure' and PLEVEL_STR in ds.coords:
+            if (self.dtype_in_vert == 'pressure' and
+                internal_names.PLEVEL_STR in ds.coords):
                 self.pressure = ds.level
         return ds
 
@@ -334,7 +325,7 @@ class Calc(object):
             ps = self._ps_data
         if self.dtype_in_vert == 'pressure':
             return self._get_pressure_from_p_coords(ps, name=var.name, n=n)
-        if self.dtype_in_vert == ETA_STR:
+        if self.dtype_in_vert == internal_names.ETA_STR:
             return self._get_pressure_from_eta_coords(ps, name=var.name, n=n)
         raise ValueError("`dtype_in_vert` must be either 'pressure' or "
                          "'sigma' for pressure data")
@@ -355,16 +346,19 @@ class Calc(object):
         # Pressure handled specially due to complications from sigma vs. p.
         elif var.name in ('p', 'dp'):
             data = self._get_pressure_vals(var, start_date, end_date)
-            if self.dtype_in_vert == ETA_STR:
+            if self.dtype_in_vert == internal_names.ETA_STR:
                 return self._to_desired_dates(data)
             return data
         # Get grid, time, etc. arrays directly from model object
-        elif var.name in (LAT_STR, LON_STR, TIME_STR, PLEVEL_STR,
-                          'pk', 'bk', 'sfc_area'):
+        elif var.name in (internal_names.LAT_STR, internal_names.LON_STR,
+                          internal_names.TIME_STR, internal_names.PLEVEL_STR,
+                          internal_names.PK_STR, internal_names.BK_STR,
+                          internal_names.SFC_AREA_STR):
             data = getattr(self.model[n], var.name)
         else:
             set_dt = True if not hasattr(self, 'dt') else False
-            cond_pfull = ((not hasattr(self, 'pfull')) and var.def_vert and
+            cond_pfull = ((not hasattr(self, internal_names.PFULL_STR))
+                          and var.def_vert and
                           self.dtype_in_vert == ETA_STR)
             data = self.data_loader.load_variable(var, start_date, end_date,
                                                   self.time_offset,
@@ -382,7 +376,7 @@ class Calc(object):
             data = data[name]
             if cond_pfull:
                 try:
-                    self.pfull_coord = data[PFULL_STR]
+                    self.pfull_coord = data[internal_names.PFULL_STR]
                 except KeyError:
                     pass
             if set_dt:
@@ -391,7 +385,8 @@ class Calc(object):
                 else:
                     pass
             # Force all data to be at full pressure levels, not half levels.
-            if self.dtype_in_vert == ETA_STR and var.def_vert == 'phalf':
+            if (self.dtype_in_vert == internal_names.ETA_STR and
+                var.def_vert == internal_names.PFULL_STR):
                 data = utils.vertcoord.to_pfull_from_phalf(data,
                                                            self.pfull_coord)
         # Correct GFDL instantaneous data time indexing problem.
@@ -452,8 +447,9 @@ class Calc(object):
             data = data_monthly
         local_ts = self._local_ts(*data)
         if self.dtype_in_time == 'inst':
-            dt = xr.DataArray(np.ones_like(local_ts[TIME_STR]),
-                              dims=[TIME_STR], coords=[local_ts[TIME_STR]])
+            dt = xr.DataArray(np.ones_like(local_ts[internal_names.TIME_STR]),
+                              dims=[internal_names.TIME_STR],
+                              coords=[local_ts[internal_names.TIME_STR]])
             if not hasattr(self, 'dt'):
                 self.dt = dt
         else:
@@ -463,8 +459,10 @@ class Calc(object):
                 logging.warning("dt array not found.  Assuming equally spaced "
                                 "values in time, even though this may not be "
                                 "the case")
-                dt = xr.DataArray(np.ones(np.shape(local_ts[TIME_STR])),
-                                  dims=[TIME_STR], coords=[local_ts[TIME_STR]])
+                dt = xr.DataArray(np.ones(
+                        np.shape(local_ts[internal_names.TIME_STR])),
+                                  dims=[internal_names.TIME_STR],
+                                  coords=[local_ts[internal_names.TIME_STR]])
                 self.dt = dt
         if monthly_mean:
             dt = utils.times.monthly_mean_ts(dt)
@@ -483,7 +481,7 @@ class Calc(object):
         # Here we need to provide file read-in dates (NOT xarray dates)
         full_ts, dt = self._compute(data, monthly_mean=monthly_mean)
         if zonal_asym:
-            full_ts = full_ts - full_ts.mean(LON_STR)
+            full_ts = full_ts - full_ts.mean(internal_names.LON_STR)
         # Vertically integrate.
         vert_types = ('vert_int', 'vert_av')
         if self.dtype_out_vert in vert_types and self.var.def_vert:
@@ -497,9 +495,9 @@ class Calc(object):
 
     def _avg_by_year(self, arr, dt):
         """Average a sub-yearly time-series over each year."""
-        yr_str = TIME_STR + '.year'
-        return ((arr*dt).groupby(yr_str).sum(TIME_STR) /
-                dt.groupby(yr_str).sum(TIME_STR))
+        yr_str = internal_names.TIME_STR + '.year'
+        return ((arr*dt).groupby(yr_str).sum(internal_names.TIME_STR) /
+                dt.groupby(yr_str).sum(internal_names.TIME_STR))
 
     def _full_to_yearly_ts(self, arr, dt):
         """Average the full timeseries within each year."""
@@ -515,8 +513,8 @@ class Calc(object):
         reductions = {
             'None': lambda xarr: xarr,
             'ts': lambda xarr: xarr,
-            'av': lambda xarr: xarr.mean(YEAR_STR),
-            'std': lambda xarr: xarr.std(YEAR_STR),
+            'av': lambda xarr: xarr.mean(internal_names.YEAR_STR),
+            'std': lambda xarr: xarr.std(internal_names.YEAR_STR),
             }
         try:
             return reductions[reduction](arr)
@@ -527,8 +525,8 @@ class Calc(object):
     def region_calcs(self, arr, func, n=0):
         """Perform a calculation for all regions."""
         # Get pressure values for data output on hybrid vertical coordinates.
-        bool_pfull = (self.def_vert and self.dtype_in_vert == ETA_STR and
-                      self.dtype_out_vert is False)
+        bool_pfull = (self.def_vert and self.dtype_in_vert ==
+                      internal_names.ETA_STR and self.dtype_out_vert is False)
         if bool_pfull:
             pfull = self._full_to_yearly_ts(self._prep_data(
                 self._get_input_data(Var('p'), self.start_date, self.end_date,
@@ -695,15 +693,19 @@ class Calc(object):
         if region:
             arr = ds[region.name]
             # Use region-specific pressure values if available.
-            if self.dtype_in_vert == ETA_STR and not dtype_out_vert:
+            if (self.dtype_in_vert == internal_names.ETA_STR
+                and not dtype_out_vert):
                 reg_pfull_str = region.name + '_pressure'
                 arr = arr.drop([r for r in arr.coords.iterkeys()
-                                if r not in (PFULL_STR, reg_pfull_str)])
+                                if r not in (internal_names.PFULL_STR,
+                                             reg_pfull_str)])
                 # Rename pfull to pfull_ref always.
-                arr = arr.rename({PFULL_STR: PFULL_STR + '_ref'})
+                arr = arr.rename({internal_names.PFULL_STR:
+                                  internal_names.PFULL_STR + '_ref'})
                 # Rename region_pfull to pfull if its there.
                 if hasattr(arr, reg_pfull_str):
-                    return arr.rename({reg_pfull_str: PFULL_STR})
+                    return arr.rename({reg_pfull_str:
+                                       internal_names.PFULL_STR})
                 return arr
             return arr
         return ds[self.name]

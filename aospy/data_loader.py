@@ -32,7 +32,6 @@ def rename_grid_attrs(data):
     """
     for name_int, names_ext in internal_names.GRID_ATTRS.items():
         data_coord_name = set(names_ext).intersection(set(data.variables))
-        print name_int, data_coord_name
         if data_coord_name:
             data = data.rename({data_coord_name.pop(): name_int})
     return data

@@ -1,4 +1,19 @@
-"""Internal names used throughout aospy"""
+"""Internal names used throughout aospy
+
+Depending on its source, data corresponding to the same physical
+variable can have different internal names. To ensure that all
+variables can be easily accessed, upon loading in data ``aospy``
+overwrites these names with names specified either in ``aospy.Var``
+objects (in the case of variables like 'precip'), or names specified
+in this module (in the case of frequently encountered coordinate variables,
+like 'latitude').
+
+The ``GRID_ATTRS`` dictionary maps the internal names for coordinates used
+in ``aospy`` to lists of potential names based on all previously encountered
+names for each coordinate in different datasets.  ``aospy`` uses this
+dictionary to identify given physical coordinates, and rename them with
+their proper internal names.
+"""
 from collections import OrderedDict
 
 # Horizontal coordinates
@@ -49,7 +64,7 @@ GRID_ATTRS = OrderedDict(
      (PLEVEL_STR, ('level', 'lev', 'plev')),
      (TIME_STR, ('time',)),
      (AVERAGE_DT_STR, ('average_DT',)),
-     (TIME_BOUNDS_STR, ('time_bounds',)),
+     (TIME_BOUNDS_STR, ('time_bounds', 'time_bnds')),
      (NV_STR, ('nv',)),
      (AVG_START_DATE_STR, ('avg_start_date',)),
      (AVG_END_DATE_STR, ('avg_end_date',))]
