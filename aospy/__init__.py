@@ -1,6 +1,5 @@
 """aospy: management, and analysis of gridded climate data."""
 from .__config__ import user_path
-from . internal_names import *
 from . import constants
 from .constants import Constant
 from . import utils
