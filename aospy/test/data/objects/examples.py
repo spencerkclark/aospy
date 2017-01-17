@@ -9,7 +9,7 @@ ROOT_PATH = os.path.dirname(__file__)
 def total_precipitation(convection_rain, condensation_rain):
     return convection_rain + condensation_rain
 
-files = os.path.join(os.path.join(os.path.split(ROOT_PATH)[0], 'netcdf'),
+files = os.path.join(os.path.split(ROOT_PATH)[0], 'netcdf',
                      '000[4-6]0101.precip_monthly.nc')
 file_map = {'monthly': files}
 
