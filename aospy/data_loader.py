@@ -145,11 +145,9 @@ class DataLoader(object):
     """A fundamental DataLoader object"""
     def load_variable(self, var=None, start_date=None, end_date=None,
                       time_offset=None, **DataAttrs):
-        """Return a DataArray with requested variable, given time range,
-        and input interval.
+        """Load a DataArray for requested variable and time range.
 
-        This function automatically renames all grid attributes to match
-        aospy conventions.
+        Automatically renames all grid attributes to match aospy conventions.
 
         Parameters
         ----------
