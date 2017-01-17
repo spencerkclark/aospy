@@ -56,11 +56,22 @@ class AospyDataLoaderTestCase(unittest.TestCase):
 
 
 class TestDataLoader(AospyDataLoaderTestCase):
-    def test_rename_grid_attrs(self):
+    def test_rename_grid_attrs_ds(self):
         assert LAT_STR not in self.ds
         assert self.ALT_LAT_STR in self.ds
         ds = rename_grid_attrs(self.ds)
         assert LAT_STR in ds
+
+    def test_rename_grid_attrs_da(self):
+        da = self.ds[self.var_name]
+        assert LAT_STR not in da
+        assert self.ALT_LAT_STR in da
+        da = rename_grid_attrs(da)
+        assert LAT_STR in da
+
+    def test_rename_grid_attrs_type_error(self):
+        with self.assertRaises(TypeError):
+            rename_grid_attrs([])
 
     def test_set_grid_attrs_as_coords(self):
         ds = rename_grid_attrs(self.ds)

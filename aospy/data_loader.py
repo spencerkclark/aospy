@@ -13,7 +13,7 @@ from .utils import times, io
 dask.set_options(get=dask.async.get_sync)
 
 
-def rename_grid_attrs(ds):
+def rename_grid_attrs(data):
     """Rename existing grid attributes to be consistent with
     aospy conventions.
 
@@ -22,20 +22,26 @@ def rename_grid_attrs(ds):
 
     Parameters
     ----------
-    ds : Dataset
+    data : xr.DataArray or xr.Dataset
 
     Returns
     -------
-    Dataset
-        Dataset returned with coordinates consistent with aospy
+    xr.DataArray or xr.Dataset
+        Data returned with coordinates consistent with aospy
         conventions
     """
+    if isinstance(data, xr.DataArray):
+        variables = set(data.to_dataset(name=data.name).variables)
+    elif isinstance(data, xr.Dataset):
+        variables = set(data.variables)
+    else:
+        raise TypeError("`xr.DataArray` or `xr.Dataset` object required.  "
+                        "Type given: {}".format(type(data)))
     for name_int, names_ext in internal_names.GRID_ATTRS.items():
-        ds_coord_name = set(names_ext).intersection(set(ds.coords) |
-                                                    set(ds.data_vars))
-        if ds_coord_name:
-            ds.rename({ds_coord_name.pop(): name_int}, inplace=True)
-    return ds
+        data_coord_name = set(names_ext).intersection(variables)
+        if data_coord_name:
+            data = data.rename({data_coord_name.pop(): name_int})
+    return data
 
 
 def set_grid_attrs_as_coords(ds):
