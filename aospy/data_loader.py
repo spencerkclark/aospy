@@ -14,8 +14,7 @@ dask.set_options(get=dask.async.get_sync)
 
 
 def rename_grid_attrs(data):
-    """Rename existing grid attributes to be consistent with
-    aospy conventions.
+    """Rename grid attributes to be consistent with aospy conventions.
 
     This function does not compare to Model coordinates or
     add missing coordinates from Model objects.
@@ -62,8 +61,7 @@ def set_grid_attrs_as_coords(ds):
 
 
 def _sel_var(ds, var):
-    """Search a Dataset for the specified variable, trying all possible
-    alternative names.
+    """Select the specified variable by trying all possible alternative names.
 
     Parameters
     ----------
@@ -92,8 +90,7 @@ def _sel_var(ds, var):
 
 
 def _prep_time_data(ds):
-    """Prepare time coordinate information in Dataset for use in
-    aospy.
+    """Prepare time coord. information in Dataset for use in aospy.
 
     1. Edit units attribute of time variable if it contains
     a Timestamp invalid date
@@ -123,13 +120,15 @@ def _prep_time_data(ds):
 
 
 def _load_data_from_disk(file_set):
-    """Load a Dataset from a list of files, concatenating along time,
-    and rename all grid attributes to their aospy internal names.
+    """Load a Dataset from a list or glob-string of files.
+
+    Datasets from files are concatenated along time,
+    and all grid attributes are renamed to their aospy internal names.
 
     Parameters
     ----------
-    file_set : list
-        List of paths to files
+    file_set : list or str
+        List of paths to files or glob-string
 
     Returns
     -------
@@ -209,8 +208,7 @@ class DataLoader(object):
 
 
 class DictDataLoader(DataLoader):
-    """A DataLoader that uses a dictionary mapping lists of files to string
-    tags.
+    """A DataLoader that uses a dict mapping lists of files to string tags
 
     This is the simplest DataLoader; it is useful for instance if one is
     dealing with raw model history files, which tend to group all variables
@@ -249,8 +247,7 @@ class DictDataLoader(DataLoader):
 
 
 class NestedDictDataLoader(DataLoader):
-    """DataLoader that uses a nested dictionary mapping
-    intvl_in to dictionaries mapping variable names to lists of files.
+    """DataLoader that uses a nested dictionary mapping to load files
 
     This is the most flexible existing type of DataLoader; it allows for the
     specification of different sets of files for different variables.  The
