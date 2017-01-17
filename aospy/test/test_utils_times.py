@@ -25,7 +25,7 @@ from aospy.utils.times import (
     _month_conditional,
     create_monthly_time_array,
     extract_date_range_and_months,
-    set_average_dt_metadata,
+    ensure_time_avg_has_cf_metadata,
     _assert_has_data_for_time,
 )
 
@@ -234,7 +234,7 @@ class TestUtilsTimes(UtilsTimesTestCase):
                                                months)
         assert actual.identical(desired)
 
-    def test_set_average_dt_metadata(self):
+    def test_ensure_time_avg_has_cf_metadata(self):
         time_bounds = np.array([[0, 31], [31, 59], [59, 90]])
         nv = np.array([0, 1])
         time = np.array([15, 46, 74])
@@ -257,9 +257,8 @@ class TestUtilsTimes(UtilsTimesTestCase):
         with self.assertRaises(KeyError):
             ds[TIME_BOUNDS_STR].attrs['calendar']
 
-        ds = set_average_dt_metadata(ds)
+        ds = ensure_time_avg_has_cf_metadata(ds)
 
-        # Test the time units get overriden in TIME_BOUNDS_STR
         result = ds[TIME_BOUNDS_STR].attrs['units']
         self.assertEqual(result, units_str)
         result = ds[TIME_BOUNDS_STR].attrs['calendar']
@@ -298,7 +297,7 @@ class TestUtilsTimes(UtilsTimesTestCase):
                                            name=TIME_BOUNDS_STR)
         units_str = 'days since 2000-01-01 00:00:00'
         ds[TIME_STR].attrs['units'] = units_str
-        ds = set_average_dt_metadata(ds)
+        ds = ensure_time_avg_has_cf_metadata(ds)
         ds = set_grid_attrs_as_coords(ds)
         ds = xr.decode_cf(ds)
         da = ds[var_name]

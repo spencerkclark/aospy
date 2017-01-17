@@ -115,7 +115,7 @@ def _prep_time_data(ds):
     """
     ds = times.numpy_datetime_workaround_encode_cf(ds)
     if internal_names.TIME_BOUNDS_STR in ds:
-        ds = times.set_average_dt_metadata(ds)
+        ds = times.ensure_time_avg_has_cf_metadata(ds)
     ds = xr.decode_cf(
         ds, decode_times=True, decode_coords=False, mask_and_scale=False
     )

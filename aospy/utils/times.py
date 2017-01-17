@@ -331,19 +331,24 @@ def extract_date_range_and_months(time, start_date, end_date, months):
     return time.sel(time=inds)
 
 
-def set_average_dt_metadata(ds):
-    """If the Dataset or DataArray contains time average data, enforce
+def ensure_time_avg_has_cf_metadata(ds):
+    """Add time interval length, and absolute bounds coordinates for time
+    average data, using CF-required metadata.
+
+    If the Dataset or DataArray contains time average data, enforce
     that there are coordinates that track the lower and upper bounds of
     the time intervals, and that there is a coordinate that tracks the
     amount of time per time average interval.
 
     CF conventions require that a quantity stored as time averages
-    over time intervals must have time and time_bounds coordinates.
+    over time intervals must have time and time_bounds coordinates [1]_.
     aospy further requires AVERAGE_DT for time average data, for accurate
     time-weighted averages, which can be inferred from the CF-required
     time_bounds coordinate if needed.  This step should be done
     prior to decoding CF metadata with xarray to ensure proper
     computed timedeltas for different calendar types.
+
+    .. [1] http://cfconventions.org/cf-conventions/v1.6.0/cf-conventions.html#_data_representative_of_cells
 
     Parameters
     ----------
@@ -355,7 +360,6 @@ def set_average_dt_metadata(ds):
     Dataset or DataArray
         Time average metadata attributes added if needed.
     """
-    # For PEP8 line-length reasons, make these local variables.
     AVG_START_DATE_STR = internal_names.AVG_START_DATE_STR
     AVG_END_DATE_STR = internal_names.AVG_END_DATE_STR
     TIME_BOUNDS_STR = internal_names.TIME_BOUNDS_STR
@@ -364,9 +368,6 @@ def set_average_dt_metadata(ds):
     AVERAGE_DT_STR = internal_names.AVERAGE_DT_STR
 
     if AVERAGE_DT_STR not in ds:
-        # Note average_DT will NOT have a units attribute and therefore
-        # will not be converted to a timedelta.  Does this matter?
-        # We can easily add one if necessary.
         average_DT = ds[TIME_BOUNDS_STR].diff(NV_STR)
         average_DT = average_DT.rename(AVERAGE_DT_STR).squeeze()
         ds[AVERAGE_DT_STR] = average_DT.drop(NV_STR)
@@ -376,10 +377,6 @@ def set_average_dt_metadata(ds):
     avg_end_date = ds[TIME_BOUNDS_STR].isel(**{TIME_STR: -1, NV_STR: 1})
     ds[AVG_END_DATE_STR] = avg_end_date.drop([TIME_STR, NV_STR])
 
-    # CF conventions state that boundary variables should have the
-    # same units as their corresponding coordinate; this enables
-    # time bounds to be decoded as dates rather than timedeltas.
-    # This allows for strict time subsetting.
     for coord in [TIME_BOUNDS_STR, AVG_START_DATE_STR, AVG_END_DATE_STR]:
         ds[coord].attrs['units'] = ds[TIME_STR].attrs['units']
         if 'calendar' in ds[TIME_STR].attrs:
@@ -410,14 +407,14 @@ def _assert_has_data_for_time(da, start_date, end_date):
     else:
         times = da.time.isel(**{internal_names.TIME_STR: [0, -1]})
         da_start, da_end = times.values
-    message = 'Data do not exist for requested time range: {0} to {1}'
+    message = 'Data does not exist for requested time range: {0} to {1}'
     range_exists = start_date >= da_start and end_date <= da_end
     assert (range_exists), message.format(start_date, end_date)
 
 
 def sel_time(da, start_date, end_date):
     """Subset a DataArray or Dataset for a given date range.  Ensures
-    that data are present for full extend of requested range.
+    that data are present for full extent of requested range.
 
     Parameters
     ----------
