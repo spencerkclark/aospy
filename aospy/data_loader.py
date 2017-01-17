@@ -22,23 +22,17 @@ def rename_grid_attrs(data):
 
     Parameters
     ----------
-    data : xr.DataArray or xr.Dataset
+    data : xr.Dataset
 
     Returns
     -------
-    xr.DataArray or xr.Dataset
+    xr.Dataset
         Data returned with coordinates consistent with aospy
         conventions
     """
-    if isinstance(data, xr.DataArray):
-        variables = set(data.to_dataset(name=data.name).variables)
-    elif isinstance(data, xr.Dataset):
-        variables = set(data.variables)
-    else:
-        raise TypeError("`xr.DataArray` or `xr.Dataset` object required.  "
-                        "Type given: {}".format(type(data)))
     for name_int, names_ext in internal_names.GRID_ATTRS.items():
-        data_coord_name = set(names_ext).intersection(variables)
+        data_coord_name = set(names_ext).intersection(set(data.variables))
+        print name_int, data_coord_name
         if data_coord_name:
             data = data.rename({data_coord_name.pop(): name_int})
     return data
