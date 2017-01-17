@@ -5,8 +5,9 @@ from datetime import datetime
 import xarray as xr
 import numpy as np
 
-from aospy.data_loader import (DataLoader, DictDataLoader, GFDLDataLoader,
-                               NestedDictDataLoader)
+from aospy.data_loader import (
+    DataLoader, DictDataLoader, GFDLDataLoader, NestedDictDataLoader,
+    rename_grid_attrs, set_grid_attrs_as_coords, _sel_var, _prep_time_data)
 from data.objects.examples import condensation_rain, convection_rain, precip
 from aospy.internal_names import (LAT_STR, LON_STR, TIME_STR, TIME_BOUNDS_STR,
                                   NV_STR, SFC_AREA_STR, ETA_STR)
@@ -58,11 +59,11 @@ class TestDataLoader(AospyDataLoaderTestCase):
     def test_rename_grid_attrs(self):
         assert LAT_STR not in self.ds
         assert self.ALT_LAT_STR in self.ds
-        ds = self.DataLoader.rename_grid_attrs(self.ds)
+        ds = rename_grid_attrs(self.ds)
         assert LAT_STR in ds
 
     def test_set_grid_attrs_as_coords(self):
-        ds = self.DataLoader.rename_grid_attrs(self.ds)
+        ds = rename_grid_attrs(self.ds)
         sfc_area = ds[self.var_name].isel(**{TIME_STR: 0}).drop(TIME_STR)
         ds[SFC_AREA_STR] = sfc_area
 
@@ -70,7 +71,7 @@ class TestDataLoader(AospyDataLoaderTestCase):
         assert SFC_AREA_STR not in ds[self.var_name]
 
         # Apply method, then assert that SFC_AREA_STR is carried
-        ds = self.DataLoader.set_grid_attrs_as_coords(ds)
+        ds = set_grid_attrs_as_coords(ds)
         assert SFC_AREA_STR in ds[self.var_name]
 
     def test_sel_var(self):
@@ -82,14 +83,14 @@ class TestDataLoader(AospyDataLoaderTestCase):
                           name=convection_rain.name).to_dataset()
         condensation_rain_alt_name, = condensation_rain.alt_names
         ds[condensation_rain_alt_name] = xr.DataArray(data, coords=[ds.time])
-        result = self.DataLoader._sel_var(ds, convection_rain)
+        result = _sel_var(ds, convection_rain)
         self.assertEqual(result.name, convection_rain.name)
 
-        result = self.DataLoader._sel_var(ds, condensation_rain)
+        result = _sel_var(ds, condensation_rain)
         self.assertEqual(result.name, condensation_rain.name)
 
         with self.assertRaises(KeyError):
-            self.DataLoader._sel_var(ds, precip)
+            _sel_var(ds, precip)
 
     def test_maybe_apply_time_shift(self):
         ds = xr.decode_cf(self.ds)

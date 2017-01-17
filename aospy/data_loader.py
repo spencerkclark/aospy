@@ -13,6 +13,135 @@ from .utils import times, io
 dask.set_options(get=dask.async.get_sync)
 
 
+def rename_grid_attrs(ds):
+    """Rename existing grid attributes to be consistent with
+    aospy conventions.
+
+    This function does not compare to Model coordinates or
+    add missing coordinates from Model objects.
+
+    Parameters
+    ----------
+    ds : Dataset
+
+    Returns
+    -------
+    Dataset
+        Dataset returned with coordinates consistent with aospy
+        conventions
+    """
+    for name_int, names_ext in internal_names.GRID_ATTRS.items():
+        ds_coord_name = set(names_ext).intersection(set(ds.coords) |
+                                                    set(ds.data_vars))
+        if ds_coord_name:
+            ds.rename({ds_coord_name.pop(): name_int}, inplace=True)
+    return ds
+
+
+def set_grid_attrs_as_coords(ds):
+    """Set available grid attributes as coordinates in a given Dataset.
+
+    Grid attributes are assumed to have their internal aospy names. Grid
+    attributes are set as coordinates, such that they are carried by all
+    selected DataArrays with overlapping index dimensions.
+
+    Parameters
+    ----------
+    ds : Dataset
+        Input data
+
+    Returns
+    -------
+    Dataset
+        Dataset with grid attributes set as coordinates
+    """
+    int_names = internal_names.GRID_ATTRS.keys()
+    grid_attrs_in_ds = set(int_names).intersection(set(ds.coords) |
+                                                   set(ds.data_vars))
+    ds.set_coords(grid_attrs_in_ds, inplace=True)
+    return ds
+
+
+def _sel_var(ds, var):
+    """Search a Dataset for the specified variable, trying all possible
+    alternative names.
+
+    Parameters
+    ----------
+    ds : Dataset
+        Dataset possibly containing var
+    var : aospy.Var
+        Variable to find data for
+
+    Returns
+    -------
+    DataArray
+
+    Raises
+    ------
+    KeyError
+        If the variable is not in the Dataset
+    """
+    for name in var.names:
+        try:
+            da = ds[name]
+            return da.rename({name: var.name})
+        except KeyError:
+            pass
+    raise KeyError('{0} not found in '
+                   'among names:{1} in {2}'.format(var, var.names, ds))
+
+
+def _prep_time_data(ds):
+    """Prepare time coordinate information in Dataset for use in
+    aospy.
+
+    1. Edit units attribute of time variable if it contains
+    a Timestamp invalid date
+    2. If the Dataset contains a time bounds coordinate, add
+    attributes representing the true beginning and end dates of
+    the time interval used to construct the Dataset
+    3. Decode the times into np.datetime64 objects for time
+    indexing
+
+    Parameters
+    ----------
+    ds : Dataset
+        Pre-processed Dataset with time coordinate renamed to
+        internal_names.TIME_STR
+
+    Returns
+    -------
+    Dataset
+    """
+    ds = times.numpy_datetime_workaround_encode_cf(ds)
+    if internal_names.TIME_BOUNDS_STR in ds:
+        ds = times.set_average_dt_metadata(ds)
+    ds = xr.decode_cf(
+        ds, decode_times=True, decode_coords=False, mask_and_scale=False
+    )
+    return ds
+
+
+def _load_data_from_disk(file_set):
+    """Load a Dataset from a list of files, concatenating along time,
+    and rename all grid attributes to their aospy internal names.
+
+    Parameters
+    ----------
+    file_set : list
+        List of paths to files
+
+    Returns
+    -------
+    Dataset
+    """
+    io.dmget(file_set)
+    return xr.open_mfdataset(file_set, preprocess=rename_grid_attrs,
+                             concat_dim=internal_names.TIME_STR,
+                             decode_cf=False)
+
+
 class DataLoader(object):
     """A fundamental DataLoader object"""
     def load_variable(self, var=None, start_date=None, end_date=None,
@@ -44,10 +173,10 @@ class DataLoader(object):
         """
         file_set = self._generate_file_set(var=var, start_date=start_date,
                                            end_date=end_date, **DataAttrs)
-        ds = self._load_data_from_disk(file_set)
-        ds = self._prep_time_data(ds)
-        ds = self.set_grid_attrs_as_coords(ds)  # Tested
-        da = self._sel_var(ds, var)  # Tested
+        ds = _load_data_from_disk(file_set)
+        ds = _prep_time_data(ds)
+        ds = set_grid_attrs_as_coords(ds)  # Tested
+        da = _sel_var(ds, var)  # Tested
 
         # Apply correction before selecting time range.
         # Note that time shifts are a property of a particular list of files
@@ -72,135 +201,6 @@ class DataLoader(object):
                                            **time_offset)
             da[internal_names.TIME_STR] = time
         return da
-
-    @classmethod
-    def _load_data_from_disk(cls, file_set):
-        """Load a Dataset from a list of files, concatenating along time,
-        and rename all grid attributes to their aospy internal names.
-
-        Parameters
-        ----------
-        file_set : list
-            List of paths to files
-
-        Returns
-        -------
-        Dataset
-        """
-        io.dmget(file_set)
-        return xr.open_mfdataset(file_set, preprocess=cls.rename_grid_attrs,
-                                 concat_dim=internal_names.TIME_STR,
-                                 decode_cf=False)
-
-    @staticmethod
-    def _prep_time_data(ds):
-        """Prepare time coordinate information in Dataset for use in
-        aospy.
-
-        1. Edit units attribute of time variable if it contains
-        a Timestamp invalid date
-        2. If the Dataset contains a time bounds coordinate, add
-        attributes representing the true beginning and end dates of
-        the time interval used to construct the Dataset
-        3. Decode the times into np.datetime64 objects for time
-        indexing
-
-        Parameters
-        ----------
-        ds : Dataset
-            Pre-processed Dataset with time coordinate renamed to
-            internal_names.TIME_STR
-
-        Returns
-        -------
-        Dataset
-        """
-        ds = times.numpy_datetime_workaround_encode_cf(ds)
-        if internal_names.TIME_BOUNDS_STR in ds:
-            ds = times.set_average_dt_metadata(ds)
-        ds = xr.decode_cf(
-            ds, decode_times=True, decode_coords=False, mask_and_scale=False
-        )
-        return ds
-
-    @staticmethod
-    def _sel_var(ds, var):
-        """Search a Dataset for the specified variable, trying all possible
-        alternative names.
-
-        Parameters
-        ----------
-        ds : Dataset
-            Dataset possibly containing var
-        var : aospy.Var
-            Variable to find data for
-
-        Returns
-        -------
-        DataArray
-
-        Raises
-        ------
-        KeyError
-             If the variable is not in the Dataset
-        """
-        for name in var.names:
-            try:
-                da = ds[name]
-                return da.rename({name: var.name})
-            except KeyError:
-                pass
-        raise KeyError('{0} not found in '
-                       'among names:{1} in {2}'.format(var, var.names, ds))
-
-    @staticmethod
-    def rename_grid_attrs(ds):
-        """Rename existing grid attributes to be consistent with
-        aospy conventions.
-
-        This function does not compare to Model coordinates or
-        add missing coordinates from Model objects.  Grid attributes
-        are set as coordinates, such that they are carried by all
-        selected DataArrays with overlapping index dimensions.
-
-        Parameters
-        ----------
-        ds : Dataset
-
-        Returns
-        -------
-        renamed : Dataset
-            Dataset returned with coordinates consistent with aospy
-            conventions
-        """
-        for name_int, names_ext in internal_names.GRID_ATTRS.items():
-            ds_coord_name = set(names_ext).intersection(set(ds.coords) |
-                                                        set(ds.data_vars))
-            if ds_coord_name:
-                ds.rename({ds_coord_name.pop(): name_int}, inplace=True)
-        return ds
-
-    @staticmethod
-    def set_grid_attrs_as_coords(ds):
-        """Set available grid attributes as coordinates in a given Dataset.
-
-        Grid attributes are assumed to have their internal aospy names.
-
-        Parameters
-        ----------
-        ds : Dataset
-            Input data
-
-        Returns
-        -------
-        Dataset
-            Dataset with grid attributes set as coordinates
-        """
-        int_names = internal_names.GRID_ATTRS.keys()
-        grid_attrs_in_ds = set(int_names).intersection(set(ds.coords) |
-                                                       set(ds.data_vars))
-        ds.set_coords(grid_attrs_in_ds, inplace=True)
-        return ds
 
     def _generate_file_set(self, var=None, start_date=None, end_date=None,
                            domain=None, intvl_in=None, dtype_in_vert=None,

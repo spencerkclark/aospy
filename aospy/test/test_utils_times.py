@@ -27,7 +27,7 @@ from aospy.internal_names import (
     TIME_STR, TIME_BOUNDS_STR, NV_STR, AVERAGE_DT_STR, AVG_START_DATE_STR,
     AVG_END_DATE_STR
 )
-from aospy.data_loader import DictDataLoader
+from aospy.data_loader import set_grid_attrs_as_coords
 
 
 _INVALID_DATE_OBJECTS = [1985, True, None, '2016-04-07', np.datetime64(1, 'Y')]
@@ -302,7 +302,7 @@ class TestUtilsTimes(UtilsTimesTestCase):
         units_str = 'days since 2000-01-01 00:00:00'
         ds[TIME_STR].attrs['units'] = units_str
         ds = set_average_dt_metadata(ds)
-        ds = DictDataLoader.set_grid_attrs_as_coords(ds)
+        ds = set_grid_attrs_as_coords(ds)
         ds = xr.decode_cf(ds)
         da = ds[var_name]
 
