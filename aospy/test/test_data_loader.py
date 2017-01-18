@@ -242,15 +242,6 @@ class TestGFDLDataLoader(TestDataLoader):
             'monthly', 'pressure', 'inst', None)
         self.assertEqual(result, expected)
 
-        # 2017-01-16 SKC: this test fails; I'm not sure what the result
-        # should be
-        # expected = ['/test/atmos/daily/monthly_from_daily/'
-        #             '6yr/atmos.20060101-20111231.temp.nc']
-        # result = self.DataLoader._input_data_paths_gfdl(
-        #     'temp', datetime(2010, 1, 1), datetime(2010, 12, 31), 'atmos',
-        #     'monthly', 'pressure', 'monthly_from_daily', None)
-        # self.assertEqual(result, expected)
-
         expected = ['/test/atmos/av/monthly_6yr/'
                     'atmos.2006-2011.jja.nc']
         result = self.DataLoader._input_data_paths_gfdl(
@@ -341,7 +332,6 @@ class TestGFDLDataLoader(TestDataLoader):
                                    '3hr', 2010, None, 2000, 6)
         self.assertEqual(result, expected)
 
-    @unittest.expectedFailure  # This aspect of this function is obselete
     def test_data_name_gfdl_seasonal(self):
         for data_type in ['ts', 'inst']:
             with self.assertRaises(NameError):

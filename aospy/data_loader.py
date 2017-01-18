@@ -355,7 +355,13 @@ class GFDLDataLoader(DataLoader):
 
     @staticmethod
     def _maybe_apply_time_shift(da, time_offset=None, **DataAttrs):
-        """Correct off-by-one error in GFDL instantaneous model data."""
+        """Correct off-by-one error in GFDL instantaneous model data.
+
+        Instantaneous data that is outputted by GFDL models is generally off by
+        one timestep.  For example, a netCDF file that is supposed to
+        correspond to 6 hourly data for the month of January, will have its
+        last time value be in February.
+        """
         if time_offset is not None:
             time = times.apply_time_offset(da[internal_names.TIME_STR],
                                            **time_offset)
