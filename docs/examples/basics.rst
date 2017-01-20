@@ -14,7 +14,8 @@ Here's a quick summary of the included data:
 .. ipython:: python
    
    import xarray as xr
-   xr.open_mfdataset('../aospy/test/data/netcdf/000[4-6]0101.precip_monthly.nc')
+   xr.open_mfdataset('../aospy/test/data/netcdf/000[4-6]0101.precip_monthly.nc',
+                     decode_times=False)
 
 In this particular model, the large-scale component of the precipitation rate
 is called "condensation_rain" and the convective component is called
@@ -23,7 +24,7 @@ is called "condensation_rain" and the convective component is called
 Defining the simulation metadata
 --------------------------------
 
-To get up and running with aospy, we need to create a Run object, which
+To get up and running with aospy, we need to create an :py:class:`aospy.Run` object, which
 stores metadata about this simulation.  This includes giving it a name, a
 description, and specifying where files are located through a DataLoader.
 
@@ -42,7 +43,7 @@ description, and specifying where files are located through a DataLoader.
         data_loader=DictDataLoader(file_map)
     )
     
-We then need to associate this Run with a Model object:
+We then need to associate this ``Run`` with an :py:class:`aospy.Model` object:
 
 .. ipython:: python
 
@@ -56,7 +57,7 @@ We then need to associate this Run with a Model object:
         runs=[example_run]
     )
 
-Finally, we need to associate the Model objcet with a Proj object.  Here we can
+Finally, we need to associate the ``Model`` object with an :py:class:`aospy.Proj` object.  Here we can
 specify the location that aospy will save its output files.
 
 .. ipython:: python
@@ -72,8 +73,8 @@ specify the location that aospy will save its output files.
 Now the metadata associated with this simulation is fully defined.  We can move
 on to computing the total precipitation.  
 
-Computing the total precipitation rate
---------------------------------------
+Computing the annual mean total precipitation rate
+--------------------------------------------------
 
 We can start by defining a simple
 python function that computes the total precipitation from condensation and
@@ -84,8 +85,8 @@ convection rain arguments:
     def total_precipitation(condensation_rain, convection_rain):
         return condensation_rain + convection_rain
 
-To hook this function into the aospy framework, we need to connect it to a Var
-object, as well as define the Var objects it depends on (variables that are
+To hook this function into the aospy framework, we need to connect it to an :py:class:`aospy.Var`
+object, as well as define the ``Var`` objects it depends on (variables that are
 natively stored in model output files).
 
 .. ipython:: python
@@ -113,15 +114,15 @@ natively stored in model output files).
        variables=(condensation_rain, convection_rain)
    )
 
-Here the func attribute of the precip Var object is the function we
-defined, and the variables attribute is a tuple containing the Var objects the
+Here the func attribute of the precip ``Var`` object is the function we
+defined, and the variables attribute is a tuple containing the ``Var`` objects the
 function depends on, in the order of the function's call signature.
 
 If we'd like to compute the time-mean total precipitation rate from year four
 to year six using aospy, we
-can create a Calc object.  This is currently done through passing a
-CalcInterface object to a Calc object; once created, the computation can be
-submitted by simply calling the compute function of Calc.  
+can create an :py:class:`aospy.Calc` object.  This is currently done through passing an
+:py:class:`aospy.CalcInterface` object to a ``Calc`` object; once created, the computation can be
+submitted by simply calling the compute function of ``Calc``.  
 
 .. ipython:: python
 
@@ -150,4 +151,65 @@ Using xarray we can open and plot the results of the calculation:
 
 .. ipython:: python
 
+    @savefig plot_ann_total_precipitation.png width=80%
     xr.open_dataset(calc_int.path_out['av']).total_precipitation.plot()
+
+Computing the global annual mean total precipitation rate
+---------------------------------------------------------
+
+Not only does aospy enable reductions along the time dimension, it also enables
+area weighted regional averages.  As a simple introduction, we'll show how to
+compute the global mean total precipitation rate from this ``Run``.  To do so,
+we'll make use of the infrastructure defined above, and also define an
+:py:class:`aospy.Region` object:
+
+.. ipython:: python
+
+    from aospy import Region
+    globe = Region(
+        name='globe',
+        description='Entire globe',
+        lat_bounds=(-90, 90),
+        lon_bounds=(0, 360),
+        do_land_mask=False
+    )
+
+To compute the global annual mean total precipitation rate, we can now create
+another ``Calc`` object:
+
+.. ipython:: python
+
+   calc_int = CalcInterface(
+       proj=example_proj,
+       model=example_model,
+       run=example_run,
+       var=precip,
+       date_range=(datetime(4, 1, 1), datetime(6, 12, 31)),
+       intvl_in='monthly',
+       dtype_in_time='ts',
+       intvl_out='ann',
+       dtype_out_time='reg.av',
+       region={'globe': globe}
+   )
+   Calc(calc_int).compute()
+
+This produces a new file, located in:
+
+.. ipython:: python
+
+   calc_int.path_out['reg.av']
+
+We find that the global annual mean total precipitation rate for this run
+(converting to units of mm per day) is:
+
+.. ipython:: python
+
+    xr.open_dataset(calc_int.path_out['reg.av']).globe * 86400.
+
+
+.. ipython:: python
+    :suppress:
+       
+    from shutil import rmtree
+    rmtree('example-output')
+    rmtree('example-tar-output')
