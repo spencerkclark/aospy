@@ -671,24 +671,6 @@ class Calc(object):
         # But 'read' mode throws OSError if file doesn't exist: make it first.
         utils.io.dmget([self.path_tar_out])
         with tarfile.open(self.path_tar_out, 'a') as tar:
-            pass
-        with tarfile.open(self.path_tar_out, 'r') as tar:
-            old_data_path = os.path.join(self.dir_tar_out,
-                                         self.file_name[dtype_out_time])
-            try:
-                tar.extract(self.file_name[dtype_out_time],
-                            path=old_data_path)
-            except KeyError:
-                pass
-            else:
-                # The os module treats files on archive as non-empty
-                # directories, so can't use os.remove or os.rmdir.
-                shutil.rmtree(old_data_path)
-                subprocess.call([
-                    "tar", "--delete", "--file={}".format(self.path_tar_out),
-                    self.file_name[dtype_out_time]
-                ])
-        with tarfile.open(self.path_tar_out, 'a') as tar:
             tar.add(self.path_out[dtype_out_time],
                     arcname=self.file_name[dtype_out_time])
 
