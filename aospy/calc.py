@@ -666,9 +666,6 @@ class Calc(object):
         """Add the data to the tar file in tar_out_direc."""
         if not os.path.isdir(self.dir_tar_out):
             os.makedirs(self.dir_tar_out)
-        # tarfile 'append' mode won't overwrite the old file, which we want.
-        # So open in 'read' mode, extract the file, and then delete it.
-        # But 'read' mode throws OSError if file doesn't exist: make it first.
         utils.io.dmget([self.path_tar_out])
         with tarfile.open(self.path_tar_out, 'a') as tar:
             tar.add(self.path_out[dtype_out_time],
